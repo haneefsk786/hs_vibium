@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/vibium/clicker/internal/browser"
 	"github.com/vibium/clicker/internal/paths"
+	"github.com/vibium/clicker/internal/process"
 )
 
 var version = "0.1.0"
@@ -83,11 +84,10 @@ func main() {
 			}
 
 			fmt.Println(result.WebSocketURL)
+			fmt.Println("Press Ctrl+C to stop...")
 
-			// Kill the browser after printing the URL
-			if result.Cmd != nil && result.Cmd.Process != nil {
-				result.Cmd.Process.Kill()
-			}
+			// Wait for signal, then cleanup
+			process.WaitForSignal()
 		},
 	})
 

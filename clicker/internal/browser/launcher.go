@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/vibium/clicker/internal/paths"
+	"github.com/vibium/clicker/internal/process"
 )
 
 // LaunchOptions contains options for launching Chrome.
@@ -82,6 +83,9 @@ func LaunchChrome(opts LaunchOptions) (*LaunchResult, error) {
 		cmd.Process.Kill()
 		return nil, fmt.Errorf("failed to get WebSocket URL: %w", err)
 	}
+
+	// Track the process for cleanup
+	process.Track(cmd)
 
 	return &LaunchResult{
 		WebSocketURL: wsURL,
