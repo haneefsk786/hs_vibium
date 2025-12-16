@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/vibium/clicker/internal/browser"
 	"github.com/vibium/clicker/internal/paths"
 )
 
@@ -51,6 +52,23 @@ func main() {
 			} else {
 				fmt.Printf("Chromedriver: %s\n", chromedriverPath)
 			}
+		},
+	})
+
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "install",
+		Short: "Download Chrome for Testing and chromedriver",
+		Run: func(cmd *cobra.Command, args []string) {
+			result, err := browser.Install()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+
+			fmt.Println("Installation complete!")
+			fmt.Printf("Chrome: %s\n", result.ChromePath)
+			fmt.Printf("Chromedriver: %s\n", result.ChromedriverPath)
+			fmt.Printf("Version: %s\n", result.Version)
 		},
 	})
 

@@ -29,5 +29,5 @@ V1 by Christmas. Start with Day 1 in V1-ROADMAP.md.
 - Verify each checkpoint before moving on
 - Don't add code from future milestones
 - After each completed milestone:
-  - Have a human verify the mileston is complete.
+  - Have a human verify the milestone is complete.
   - Git commit the changes
