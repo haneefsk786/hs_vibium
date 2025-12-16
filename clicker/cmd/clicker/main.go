@@ -75,19 +75,21 @@ func main() {
 
 	rootCmd.AddCommand(&cobra.Command{
 		Use:   "launch-test",
-		Short: "Launch Chrome and print WebSocket URL",
+		Short: "Launch browser via chromedriver and print BiDi WebSocket URL",
 		Run: func(cmd *cobra.Command, args []string) {
-			result, err := browser.LaunchChrome(browser.LaunchOptions{Headless: true})
+			result, err := browser.Launch(browser.LaunchOptions{Headless: true})
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				os.Exit(1)
 			}
 
-			fmt.Println(result.WebSocketURL)
+			fmt.Printf("Session ID: %s\n", result.SessionID)
+			fmt.Printf("BiDi WebSocket: %s\n", result.WebSocketURL)
 			fmt.Println("Press Ctrl+C to stop...")
 
 			// Wait for signal, then cleanup
 			process.WaitForSignal()
+			result.Close()
 		},
 	})
 
