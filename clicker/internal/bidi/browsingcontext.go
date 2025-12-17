@@ -1,0 +1,92 @@
+package bidi
+
+import (
+	"encoding/json"
+	"fmt"
+)
+
+// BrowsingContextInfo represents a browsing context in the tree.
+type BrowsingContextInfo struct {
+	Context  string                `json:"context"`
+	URL      string                `json:"url"`
+	Children []BrowsingContextInfo `json:"children,omitempty"`
+	Parent   string                `json:"parent,omitempty"`
+}
+
+// GetTreeResult represents the result of browsingContext.getTree.
+type GetTreeResult struct {
+	Contexts []BrowsingContextInfo `json:"contexts"`
+}
+
+// GetTree returns the tree of browsing contexts.
+func (c *Client) GetTree() (*GetTreeResult, error) {
+	msg, err := c.SendCommand("browsingContext.getTree", map[string]interface{}{})
+	if err != nil {
+		return nil, err
+	}
+
+	var result GetTreeResult
+	if err := json.Unmarshal(msg.Result, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse browsingContext.getTree result: %w", err)
+	}
+
+	return &result, nil
+}
+
+// NavigationInfo represents the result of a navigation.
+type NavigationInfo struct {
+	Navigation string `json:"navigation"`
+	URL        string `json:"url"`
+}
+
+// NavigateResult represents the result of browsingContext.navigate.
+type NavigateResult struct {
+	Navigation string `json:"navigation"`
+	URL        string `json:"url"`
+}
+
+// Navigate navigates a browsing context to a URL.
+// If context is empty, it uses the first available context.
+func (c *Client) Navigate(context, url string) (*NavigateResult, error) {
+	// If no context provided, get the first one from the tree
+	if context == "" {
+		tree, err := c.GetTree()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get browsing context: %w", err)
+		}
+		if len(tree.Contexts) == 0 {
+			return nil, fmt.Errorf("no browsing contexts available")
+		}
+		context = tree.Contexts[0].Context
+	}
+
+	params := map[string]interface{}{
+		"context": context,
+		"url":     url,
+		"wait":    "complete", // Wait for page load to complete
+	}
+
+	msg, err := c.SendCommand("browsingContext.navigate", params)
+	if err != nil {
+		return nil, err
+	}
+
+	var result NavigateResult
+	if err := json.Unmarshal(msg.Result, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse browsingContext.navigate result: %w", err)
+	}
+
+	return &result, nil
+}
+
+// GetCurrentURL returns the URL of the first browsing context.
+func (c *Client) GetCurrentURL() (string, error) {
+	tree, err := c.GetTree()
+	if err != nil {
+		return "", err
+	}
+	if len(tree.Contexts) == 0 {
+		return "", fmt.Errorf("no browsing contexts available")
+	}
+	return tree.Contexts[0].URL, nil
+}

@@ -180,6 +180,44 @@ func main() {
 		},
 	})
 
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "navigate [url]",
+		Short: "Navigate to a URL and print page info",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			url := args[0]
+
+			fmt.Println("Launching browser...")
+			launchResult, err := browser.Launch(browser.LaunchOptions{Headless: true})
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error launching browser: %v\n", err)
+				os.Exit(1)
+			}
+			defer launchResult.Close()
+
+			fmt.Println("Connecting to BiDi...")
+			conn, err := bidi.Connect(launchResult.WebSocketURL)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error connecting: %v\n", err)
+				os.Exit(1)
+			}
+			defer conn.Close()
+
+			client := bidi.NewClient(conn)
+
+			fmt.Printf("Navigating to %s...\n", url)
+			result, err := client.Navigate("", url)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error navigating: %v\n", err)
+				os.Exit(1)
+			}
+
+			fmt.Printf("Navigation complete!\n")
+			fmt.Printf("  URL: %s\n", result.URL)
+			fmt.Printf("  Navigation ID: %s\n", result.Navigation)
+		},
+	})
+
 	rootCmd.Version = version
 	rootCmd.SetVersionTemplate("Clicker v{{.Version}}\n")
 
