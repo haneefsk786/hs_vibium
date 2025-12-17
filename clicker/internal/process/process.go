@@ -36,13 +36,19 @@ func Untrack(cmd *exec.Cmd) {
 	}
 }
 
-// KillAll terminates all tracked browser processes.
+// KillAll terminates all tracked browser processes and their children.
 func KillAll() {
 	defaultManager.mu.Lock()
 	defer defaultManager.mu.Unlock()
 	for _, cmd := range defaultManager.browsers {
 		if cmd.Process != nil {
-			cmd.Process.Kill()
+			// Kill the entire process group to get all child processes
+			pgid, err := syscall.Getpgid(cmd.Process.Pid)
+			if err == nil {
+				syscall.Kill(-pgid, syscall.SIGKILL)
+			} else {
+				cmd.Process.Kill()
+			}
 		}
 	}
 	defaultManager.browsers = nil

@@ -37,6 +37,9 @@ func waitAndClose(launchResult *browser.LaunchResult) {
 }
 
 func main() {
+	// Setup signal handler to cleanup on Ctrl+C
+	process.SetupSignalHandler()
+
 	rootCmd := &cobra.Command{
 		Use:   "clicker",
 		Short: "Browser automation for AI agents and humans",
