@@ -40,6 +40,13 @@ async function handleCommand(cmd: Command): Promise<unknown> {
       return { data: buffer.toString('base64') };
     }
 
+    case 'evaluate': {
+      if (!vibe) throw new Error('Browser not launched');
+      const [script] = cmd.args as [string];
+      const result = await vibe.evaluate(script);
+      return { result };
+    }
+
     case 'find': {
       if (!vibe) throw new Error('Browser not launched');
       const [selector, options] = cmd.args as [string, FindOptions | undefined];

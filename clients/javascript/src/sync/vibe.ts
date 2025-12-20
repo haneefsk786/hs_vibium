@@ -20,6 +20,14 @@ export class VibeSync {
   }
 
   /**
+   * Execute JavaScript in the page context.
+   */
+  evaluate<T = unknown>(script: string): T {
+    const result = this.bridge.call<{ result: T }>('evaluate', [script]);
+    return result.result;
+  }
+
+  /**
    * Find an element by CSS selector.
    * Waits for element to exist before returning.
    */

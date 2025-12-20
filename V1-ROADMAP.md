@@ -507,7 +507,7 @@ vibe.quit();
 
 ---
 
-## Day 9: Actionability (Playwright-style)
+## ✅ Day 9: Actionability (Playwright-style)
 
 ### Actionability Checks (like Playwright)
 

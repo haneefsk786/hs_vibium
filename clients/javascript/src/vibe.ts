@@ -60,6 +60,25 @@ export class Vibe {
   }
 
   /**
+   * Execute JavaScript in the page context.
+   */
+  async evaluate<T = unknown>(script: string): Promise<T> {
+    const context = await this.getContext();
+    const result = await this.client.send<{
+      type: string;
+      result: { type: string; value?: T };
+    }>('script.callFunction', {
+      functionDeclaration: `() => { ${script} }`,
+      target: { context },
+      arguments: [],
+      awaitPromise: true,
+      resultOwnership: 'root',
+    });
+
+    return result.result.value as T;
+  }
+
+  /**
    * Find an element by CSS selector.
    * Waits for element to exist before returning.
    */
