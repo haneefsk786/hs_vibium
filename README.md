@@ -26,18 +26,17 @@ Vibium is browser automation infrastructure built for AI agents. A single Go bin
                       │ MCP Protocol (stdio)
                       ▼
            ┌─────────────────────┐         
-           │   Clicker Binary    │
-           │   (Go, ~10MB)       │
-           │                     │         ┌──────────────────┐
-           │  ┌───────────────┐  │         │                  │
-           │  │  MCP Server   │  │  BiDi   │                  │
-           │  └───────▲───────┘  │◄───────►│  Chrome Browser  │
-           │          │          │WebSocket│                  │
-           │  ┌───────▼───────┐  │         │                  │
-           │  │  BiDi Proxy   │  │         └──────────────────┘
-           │  └───────────────┘  │
+           │   Vibium Clicker    │
            │                     │
-           └─────────────────────┘
+           │  ┌───────────────┐  │
+           │  │  MCP Server   │  │
+           │  └───────▲───────┘  │         ┌──────────────────┐
+           │          │          │         │                  │
+           │  ┌───────▼───────┐  │WebSocket│                  │
+           │  │  BiDi Proxy   │  │◄───────►│  Chrome Browser  │
+           │  └───────────────┘  │  BiDi   │                  │
+           │                     │         │                  │
+           └─────────────────────┘         └──────────────────┘
                       ▲
                       │ WebSocket BiDi :9515
                       ▼
