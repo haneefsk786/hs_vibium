@@ -82,6 +82,9 @@ vibium/
 │       │   ├── element.ts                # Element class (async)
 │       │   │
 │       │   ├── sync/                     # Sync API Wrappers
+│       │   │   ├── index.ts              # Sync exports
+│       │   │   ├── bridge.ts             # Worker thread bridge (Atomics.wait)
+│       │   │   ├── worker.ts             # Worker thread (runs async ops)
 │       │   │   ├── browser.ts            # browserSync.launch()
 │       │   │   ├── vibe.ts               # VibeSync class
 │       │   │   └── element.ts            # ElementSync class
