@@ -2,7 +2,7 @@
 
 it's time to actually ship.
 
-starting back in september, i did a few podcasts and interviews about vibium. the response was overwhelming. 9000+ new linkedin connections, 1300+ completed surveys, 1000+ mailing list, 20+ user "listening session" video calls, a sold-out testguild irl in chicago, blog posts, medium articles, reddit threads, a vibium subreddit (!), youtube videos, tiktoks (!), "vibium conf", "vibium certified". some excited, some skeptical, some rightfully calling out that there wasn't actual software to use yet.
+starting back in september, i did a few podcasts and interviews about vibium. the response was overwhelming. 9000+ new linkedin connections, 1300+ completed surveys, 1000+ mailing list signups, 20+ user "listening session" video calls, a sold-out testguild irl in chicago, blog posts, medium articles, reddit threads, a vibium subreddit (!), youtube videos, tiktoks (!), "vibium conf", "vibium certified". some excited, some skeptical, some rightfully calling out that there wasn't actual software to use yet.
 
 fair. i heard you.
 
