@@ -12,6 +12,7 @@ import (
 	"github.com/vibium/clicker/internal/bidi"
 	"github.com/vibium/clicker/internal/browser"
 	"github.com/vibium/clicker/internal/features"
+	"github.com/vibium/clicker/internal/log"
 	"github.com/vibium/clicker/internal/mcp"
 	"github.com/vibium/clicker/internal/paths"
 	"github.com/vibium/clicker/internal/process"
@@ -25,6 +26,7 @@ var (
 	headed    bool
 	waitOpen  int
 	waitClose int
+	verbose   bool
 )
 
 // doWaitOpen waits for page to load if --wait-open is set.
@@ -60,6 +62,12 @@ func main() {
 	rootCmd := &cobra.Command{
 		Use:   "clicker",
 		Short: "Browser automation for AI agents and humans",
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			// Enable logging only if --verbose is used
+			if verbose {
+				log.Setup(log.LevelVerbose)
+			}
+		},
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Help()
 		},
@@ -69,6 +77,7 @@ func main() {
 	rootCmd.PersistentFlags().BoolVar(&headed, "headed", false, "Show browser window (not headless)")
 	rootCmd.PersistentFlags().IntVar(&waitOpen, "wait-open", 0, "Seconds to wait after navigation for page to load")
 	rootCmd.PersistentFlags().IntVar(&waitClose, "wait-close", 0, "Seconds to keep browser open before closing (0 with --headed = wait for Enter)")
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Enable debug logging")
 
 	rootCmd.AddCommand(&cobra.Command{
 		Use:   "version",

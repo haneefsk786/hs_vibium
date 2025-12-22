@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/vibium/clicker/internal/log"
 )
 
 // JSON-RPC 2.0 request structure
@@ -211,6 +213,8 @@ func (s *Server) handleRequest(data []byte) *Response {
 
 // route dispatches requests to the appropriate handler.
 func (s *Server) route(req Request) (interface{}, *Error) {
+	log.Debug("mcp request", "method", req.Method, "id", req.ID)
+
 	switch req.Method {
 	case "initialize":
 		return s.handleInitialize(req.Params)

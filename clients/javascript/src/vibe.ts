@@ -1,6 +1,7 @@
 import { BiDiClient, BrowsingContextTree, NavigationResult, ScreenshotResult } from './bidi';
 import { ClickerProcess } from './clicker';
 import { Element, ElementInfo } from './element';
+import { debug } from './utils/debug';
 
 export interface FindOptions {
   /** Timeout in milliseconds to wait for element. Default: 30000 */
@@ -43,12 +44,14 @@ export class Vibe {
   }
 
   async go(url: string): Promise<void> {
+    debug('navigating', { url });
     const context = await this.getContext();
     await this.client.send<NavigationResult>('browsingContext.navigate', {
       context,
       url,
       wait: 'complete',
     });
+    debug('navigation complete', { url });
   }
 
   async screenshot(): Promise<Buffer> {
@@ -83,6 +86,7 @@ export class Vibe {
    * Waits for element to exist before returning.
    */
   async find(selector: string, options?: FindOptions): Promise<Element> {
+    debug('finding element', { selector, timeout: options?.timeout });
     const context = await this.getContext();
 
     const result = await this.client.send<VibiumFindResult>('vibium:find', {
@@ -96,6 +100,7 @@ export class Vibe {
       text: result.text,
       box: result.box,
     };
+    debug('element found', { selector, tag: result.tag });
 
     return new Element(this.client, context, selector, info);
   }

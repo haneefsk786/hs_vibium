@@ -14,14 +14,6 @@
 | JS Client | TypeScript: async API (`await vibe.go()`) + sync API (`vibe.go()`) |
 | MCP Server | stdio interface for Claude Code / LLM agents |
 
-## Go Dependencies
-
-```
-github.com/spf13/cobra        # CLI framework
-github.com/gorilla/websocket  # WebSocket client/server
-github.com/rs/zerolog         # Structured logging
-```
-
 ## What's NOT In V1
 
 See [V2-ROADMAP.md](V2-ROADMAP.md) for:

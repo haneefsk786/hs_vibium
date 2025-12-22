@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/vibium/clicker/internal/log"
 	"github.com/vibium/clicker/internal/paths"
 	"github.com/vibium/clicker/internal/process"
 )
@@ -93,15 +94,19 @@ type sessionValue struct {
 
 // Launch starts chromedriver and creates a BiDi session.
 func Launch(opts LaunchOptions) (*LaunchResult, error) {
+	log.Debug("launching browser", "headless", opts.Headless)
+
 	chromedriverPath, err := paths.GetChromedriverPath()
 	if err != nil {
 		return nil, fmt.Errorf("chromedriver not found: %w (run 'clicker install' first)", err)
 	}
+	log.Debug("found chromedriver", "path", chromedriverPath)
 
 	chromePath, err := paths.GetChromeExecutable()
 	if err != nil {
 		return nil, fmt.Errorf("Chrome not found: %w (run 'clicker install' first)", err)
 	}
+	log.Debug("found chrome", "path", chromePath)
 
 	// Find available port
 	port := opts.Port
@@ -111,6 +116,7 @@ func Launch(opts LaunchOptions) (*LaunchResult, error) {
 			return nil, fmt.Errorf("failed to find available port: %w", err)
 		}
 	}
+	log.Debug("using port", "port", port)
 
 	// Start chromedriver as a process group leader so we can kill all children
 	cmd := exec.Command(chromedriverPath, fmt.Sprintf("--port=%d", port))
@@ -145,6 +151,7 @@ func Launch(opts LaunchOptions) (*LaunchResult, error) {
 		cmd.Process.Kill()
 		return nil, fmt.Errorf("failed to create session: %w", err)
 	}
+	log.Info("browser launched", "sessionId", sessionID, "wsUrl", wsURL)
 
 	return &LaunchResult{
 		WebSocketURL:    wsURL,
@@ -275,6 +282,8 @@ func createSession(baseURL, chromePath string, headless, verbose bool) (string, 
 
 // Close terminates a chromedriver session and process.
 func (r *LaunchResult) Close() error {
+	log.Debug("closing browser", "sessionId", r.SessionID)
+
 	// Delete session first (tells chromedriver to quit Chrome gracefully)
 	if r.SessionID != "" && r.Port > 0 {
 		req, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("http://localhost:%d/session/%s", r.Port, r.SessionID), nil)

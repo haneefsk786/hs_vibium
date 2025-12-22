@@ -9,6 +9,7 @@ import (
 	"github.com/vibium/clicker/internal/bidi"
 	"github.com/vibium/clicker/internal/browser"
 	"github.com/vibium/clicker/internal/features"
+	"github.com/vibium/clicker/internal/log"
 )
 
 // Handlers manages browser session state and executes tool calls.
@@ -29,6 +30,8 @@ func NewHandlers(screenshotDir string) *Handlers {
 
 // Call executes a tool by name with the given arguments.
 func (h *Handlers) Call(name string, args map[string]interface{}) (*ToolsCallResult, error) {
+	log.Debug("tool call", "name", name, "args", args)
+
 	switch name {
 	case "browser_launch":
 		return h.browserLaunch(args)
