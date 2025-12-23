@@ -18,7 +18,7 @@
   "scripts": {
     "build": "tsup"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "devDependencies": {
     "@types/ws": "^8.18.1",
     "tsup": "^8.0.0",
