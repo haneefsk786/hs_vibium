@@ -1,12 +1,12 @@
-# Day 12: Published to npm 🚀🎉📦
+# day 12: published to npm 🚀🎉📦
 
-**Date:** 2025-12-22
+**date:** 2025-12-22
 
-Vibium v0.1.2 is live on npm. Three days before Christmas. 🎄
+vibium v0.1.2 is live on npm. three days before christmas. 🎄
 
-## What Got Published
+## what got published
 
-Six packages, all at v0.1.2:
+six packages, all at v0.1.2:
 
 - `vibium` - main package (re-exports JS client, runs postinstall)
 - `@vibium/darwin-arm64` - macOS Apple Silicon
@@ -15,17 +15,17 @@ Six packages, all at v0.1.2:
 - `@vibium/linux-x64` - Linux x64
 - `@vibium/win32-x64` - Windows x64
 
-Install with:
+install with:
 
 ```bash
 npm install vibium
 ```
 
-Chrome for Testing downloads automatically on first install.
+chrome for testing downloads automatically on first install.
 
-## Docs Overhaul
+## docs overhaul
 
-Made all JS examples REPL-friendly:
+made all JS examples REPL-friendly:
 
 ```javascript
 // Option 1: require (REPL-friendly)
@@ -38,37 +38,37 @@ const { browser } = await import('vibium')
 import { browser, browserSync } from 'vibium'
 ```
 
-Updated README, CONTRIBUTING, and npm-publishing guides with:
-- All three import options
-- Both sync and async examples
-- Realistic selectors (example.com's actual `<a>` tag)
-- Idiomatic file writing (sync: `fs`, async: `fs/promises`)
+updated README, CONTRIBUTING, and npm-publishing guides with:
+- all three import options
+- both sync and async examples
+- realistic selectors (example.com's actual `<a>` tag)
+- idiomatic file writing (sync: `fs`, async: `fs/promises`)
 
-## Visible by Default
+## visible by default
 
-We flipped the default from headless to visible. Now when you run:
+we flipped the default from headless to visible. now when you run:
 
 ```javascript
 const vibe = browserSync.launch()
 ```
 
-You see the browser. No flags needed. This optimizes for the "aha!" moment when someone tries Vibium for the first time.
+you see the browser. no flags needed. this optimizes for the "aha!" moment when someone tries vibium for the first time.
 
-To hide the browser, explicitly pass `headless: true` or use `--headless` on the CLI.
+to hide the browser, explicitly pass `headless: true` or use `--headless` on the CLI.
 
-## CLI Flag Change
+## CLI flag change
 
 ```bash
-# Old (no longer exists)
+# old (no longer exists)
 clicker screenshot https://example.com --headed
 
-# New
+# new
 clicker screenshot https://example.com --headless
 ```
 
-The flag flipped because the default flipped. Visible is now the baseline.
+the flag flipped because the default flipped. visible is now the baseline.
 
-## New Make Targets
+## new make targets
 
 ```bash
 make install-browser  # Download Chrome for Testing
@@ -76,15 +76,15 @@ make package          # Build all npm packages
 make clean-packages   # Clean built packages
 ```
 
-## What's Next
+## what's next
 
-Three days until Christmas. The V1 goal is in sight:
+three days until christmas. the V1 goal is in sight:
 - MCP server works with Claude Code
 - JS client (sync + async) works
 - CLI works
 - npm packages published
 
-Next: final polish, maybe a demo video? Definitely some memes.
+next: final polish, maybe a demo video? definitely some memes.
 
 ✨🎅🎄🎁✨
 
