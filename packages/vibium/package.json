@@ -43,11 +43,11 @@
   },
   "files": ["dist", "bin.js", "postinstall.js"],
   "optionalDependencies": {
-    "@vibium/linux-x64": "0.1.2",
-    "@vibium/linux-arm64": "0.1.2",
-    "@vibium/darwin-x64": "0.1.2",
-    "@vibium/darwin-arm64": "0.1.2",
-    "@vibium/win32-x64": "0.1.2"
+    "@vibium/linux-x64": "0.1.3",
+    "@vibium/linux-arm64": "0.1.3",
+    "@vibium/darwin-x64": "0.1.3",
+    "@vibium/darwin-arm64": "0.1.3",
+    "@vibium/win32-x64": "0.1.3"
   },
   "dependencies": {
     "ws": "^8.18.3"
