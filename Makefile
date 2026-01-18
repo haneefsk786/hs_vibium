@@ -1,4 +1,4 @@
-.PHONY: all build build-go build-js build-all-platforms package package-platforms package-main package-python-platforms package-python install-browser deps clean clean-bin clean-js clean-packages clean-python-packages clean-cache clean-all serve test test-cli test-js test-mcp test-python double-tap help
+.PHONY: all build build-go build-js build-all-platforms package package-platforms package-main package-python-platforms package-python install-browser deps clean clean-bin clean-js clean-packages clean-python clean-cache clean-all serve test test-cli test-js test-mcp test-python double-tap help
 
 # Default target
 all: build
@@ -137,10 +137,11 @@ clean-packages:
 	rm -f packages/*/bin/clicker packages/*/bin/clicker.exe
 	rm -rf packages/vibium/dist
 
-# Clean built Python packages
-clean-python-packages:
+# Clean Python (venv, dist, platform binaries)
+clean-python:
+	rm -rf clients/python/.venv clients/python/dist
 	rm -f packages/python/*/src/*/bin/clicker packages/python/*/src/*/bin/clicker.exe
-	rm -rf packages/python/*/dist clients/python/dist
+	rm -rf packages/python/*/dist
 
 # Clean cached Chrome for Testing
 clean-cache:
@@ -148,7 +149,7 @@ clean-cache:
 	rm -rf ~/.cache/vibium/chrome-for-testing
 
 # Clean everything (binaries + JS dist + packages + Python + cache)
-clean-all: clean-bin clean-js clean-packages clean-python-packages clean-cache
+clean-all: clean-bin clean-js clean-packages clean-python clean-cache
 
 # Alias for clean-bin + clean-js
 clean: clean-bin clean-js
@@ -188,7 +189,7 @@ help:
 	@echo "Clean:"
 	@echo "  make clean              - Clean binaries and JS dist"
 	@echo "  make clean-packages     - Clean built npm packages"
-	@echo "  make clean-python-packages - Clean built Python packages"
+	@echo "  make clean-python       - Clean Python venv, dist, and binaries"
 	@echo "  make clean-cache        - Clean cached Chrome for Testing"
 	@echo "  make clean-all          - Clean everything"
 	@echo ""

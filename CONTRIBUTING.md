@@ -86,7 +86,7 @@ make double-tap         # Kill zombie Chrome/chromedriver processes
 ```bash
 make clean              # Clean binaries and JS dist
 make clean-packages     # Clean built npm packages
-make clean-python-packages # Clean built Python packages
+make clean-python # Clean built Python packages
 make clean-cache        # Clean cached Chrome for Testing
 make clean-all          # Clean everything
 ```

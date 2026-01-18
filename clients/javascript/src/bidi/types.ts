@@ -10,7 +10,8 @@ export interface BiDiResponse {
   id: number;
   type: 'success' | 'error';
   result?: unknown;
-  error?: BiDiError;
+  error?: string;
+  message?: string;
 }
 
 export interface BiDiEvent {

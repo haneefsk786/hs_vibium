@@ -3,5 +3,5 @@
 from .browser import browser
 from .browser_sync import browser_sync
 
-__version__ = "0.1.0"
+__version__ = "0.1.3"
 __all__ = ["browser", "browser_sync"]

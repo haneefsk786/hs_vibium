@@ -4,8 +4,8 @@ import asyncio
 import json
 from typing import Any, Dict, Optional
 
-import websockets
-from websockets.client import WebSocketClientProtocol
+from websockets.asyncio.client import ClientConnection, connect as ws_connect
+from websockets.exceptions import ConnectionClosed
 
 
 class BiDiError(Exception):
@@ -20,7 +20,7 @@ class BiDiError(Exception):
 class BiDiClient:
     """WebSocket client for BiDi protocol."""
 
-    def __init__(self, ws: WebSocketClientProtocol):
+    def __init__(self, ws: ClientConnection):
         self._ws = ws
         self._next_id = 1
         self._pending: Dict[int, asyncio.Future] = {}
@@ -36,7 +36,7 @@ class BiDiClient:
         Returns:
             A connected BiDiClient instance.
         """
-        ws = await websockets.connect(url)
+        ws = await ws_connect(url)
         client = cls(ws)
         client._receiver_task = asyncio.create_task(client._receive_loop())
         return client
@@ -49,7 +49,7 @@ class BiDiClient:
                 msg_id = data.get("id")
                 if msg_id is not None and msg_id in self._pending:
                     self._pending[msg_id].set_result(data)
-        except websockets.exceptions.ConnectionClosed:
+        except ConnectionClosed:
             # Connection closed, cancel all pending futures
             for future in self._pending.values():
                 if not future.done():
@@ -86,10 +86,9 @@ class BiDiClient:
             response = await future
 
             if response.get("type") == "error":
-                error_info = response.get("error", {})
                 raise BiDiError(
-                    error_info.get("error", "unknown"),
-                    error_info.get("message", "Unknown error"),
+                    response.get("error", "unknown"),
+                    response.get("message", "Unknown error"),
                 )
 
             return response.get("result")

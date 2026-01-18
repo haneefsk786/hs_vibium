@@ -36,17 +36,13 @@ type bidiCommand struct {
 	Params map[string]interface{} `json:"params"`
 }
 
-// BiDi response structure for sending responses
+// BiDi response structure for sending responses (follows WebDriver BiDi spec)
 type bidiResponse struct {
-	ID     int         `json:"id"`
-	Type   string      `json:"type"` // "success" or "error"
-	Result interface{} `json:"result,omitempty"`
-	Error  *bidiError  `json:"error,omitempty"`
-}
-
-type bidiError struct {
-	Error   string `json:"error"`
-	Message string `json:"message"`
+	ID      int         `json:"id"`
+	Type    string      `json:"type"` // "success" or "error"
+	Result  interface{} `json:"result,omitempty"`
+	Error   string      `json:"error,omitempty"`
+	Message string      `json:"message,omitempty"`
 }
 
 // Router manages browser sessions for connected clients.
@@ -448,15 +444,13 @@ func (r *Router) sendSuccess(session *BrowserSession, id int, result interface{}
 	session.Client.Send(string(data))
 }
 
-// sendError sends an error response to the client.
+// sendError sends an error response to the client (follows WebDriver BiDi spec).
 func (r *Router) sendError(session *BrowserSession, id int, err error) {
 	resp := bidiResponse{
-		ID:   id,
-		Type: "error",
-		Error: &bidiError{
-			Error:   "timeout",
-			Message: err.Error(),
-		},
+		ID:      id,
+		Type:    "error",
+		Error:   "timeout",
+		Message: err.Error(),
 	}
 	data, _ := json.Marshal(resp)
 	session.Client.Send(string(data))

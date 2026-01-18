@@ -80,4 +80,19 @@ describe('JS Auto-Wait', () => {
       await vibe.quit();
     }
   });
+
+  test('navigation error message is clear', async () => {
+    const vibe = await browser.launch({ headless: true });
+    try {
+      await assert.rejects(
+        async () => {
+          await vibe.go('https://test.invalid');
+        },
+        /error/i,
+        'Should throw error for invalid domain'
+      );
+    } finally {
+      await vibe.quit();
+    }
+  });
 });

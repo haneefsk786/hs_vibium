@@ -14,7 +14,6 @@ Vibium is browser automation infrastructure built for AI agents. A single binary
 
 - **AI-native.** MCP server built-in. Claude Code can drive a browser out of the box.
 - **Zero config.** One install, browser downloads automatically, visible by default.
-- **Sync API.** No async/await ceremony. Perfect for scripts, REPLs, and agents.
 - **Standards-based.** Built on [WebDriver BiDi](docs/explanation/webdriver-bidi.md), not proprietary protocols controlled by large corporations.
 - **Lightweight.** Single ~10MB binary. No runtime dependencies.
 
@@ -56,8 +55,8 @@ Vibium is browser automation infrastructure built for AI agents. A single binary
                       │ WebSocket BiDi :9515
                       ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                       Client Libraries                       │
-│           npm install vibium  ·  pip install vibium          │
+│                     Client Libraries                        │
+│         npm install vibium  ·  pip install vibium           │
 │                                                             │
 │    ┌─────────────────┐               ┌─────────────────┐    │
 │    │ Async API       │               │    Sync API     │    │

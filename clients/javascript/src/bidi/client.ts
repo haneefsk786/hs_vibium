@@ -39,7 +39,7 @@ export class BiDiClient {
     this.pendingCommands.delete(response.id);
 
     if (response.type === 'error' && response.error) {
-      pending.reject(new Error(`${response.error.error}: ${response.error.message}`));
+      pending.reject(new Error(`${response.error}: ${response.message}`));
     } else {
       pending.resolve(response.result);
     }
