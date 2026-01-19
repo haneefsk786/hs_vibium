@@ -171,11 +171,8 @@ main()
 **Use Python instead:**
 See [Getting Started (Python)](getting-started-python.md) for the Python version.
 
-**Add to Claude Code** (let AI control the browser):
-```bash
-claude mcp add vibium -- npx -y vibium
-```
-See [Getting Started with MCP](getting-started-mcp.md) for the full guide.
+**Let AI control the browser:**
+See [Getting Started with MCP](getting-started-mcp.md) for Claude Code and Gemini CLI setup.
 
 ---
 

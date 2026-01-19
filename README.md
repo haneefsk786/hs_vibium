@@ -173,13 +173,21 @@ asyncio.run(main())
 
 ## For Agents
 
-One command to add browser control to Claude Code:
+One command to add browser control to your AI coding assistant:
 
+**Claude Code:**
 ```bash
 claude mcp add vibium -- npx -y vibium
 ```
 
-That's it. No manual steps needed. Chrome downloads automatically during setup.
+**Gemini CLI:**
+```bash
+gemini mcp add vibium npx -y vibium
+```
+
+That's it. Chrome downloads automatically on first use.
+
+See detailed setup guides: [Claude Code](docs/tutorials/claude-code-mcp-setup.md) | [Gemini CLI](docs/tutorials/gemini-cli-mcp-setup.md)
 
 | Tool | Description |
 |------|-------------|
