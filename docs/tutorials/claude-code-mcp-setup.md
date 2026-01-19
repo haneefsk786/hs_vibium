@@ -4,7 +4,9 @@ This tutorial covers how to manage MCP (Model Context Protocol) servers in Claud
 
 ## Prerequisites
 
-- Claude Code CLI installed (`npm install -g @anthropic-ai/claude-code`)
+- Claude Code CLI installed:
+  - macOS: `brew install --cask claude-code`
+  - npm: `npm install -g @anthropic/claude-code`
 - Vibium installed (`npm install vibium`) or clicker binary built locally
 
 ## List Installed MCP Servers
@@ -15,19 +17,18 @@ To see all currently configured MCP servers:
 claude mcp list
 ```
 
-Example output:
+Example output (after adding vibium):
 ```
-vibium: clicker mcp
-filesystem: npx -y @anthropic-ai/mcp-filesystem /path/to/dir
+Checking MCP server health...
+
+vibium: npx -y vibium - ✓ Connected
 ```
 
-If no MCP servers are configured, the output will be empty.
+If no MCP servers are configured, the list will be empty.
 
 ## Add Vibium MCP
 
 ### Option 1: Using npx (Recommended)
-
-After Vibium is published to npm:
 
 ```bash
 claude mcp add vibium -- npx -y vibium
@@ -47,15 +48,24 @@ For example, from the vibium repo root:
 claude mcp add vibium -- ./clicker/bin/clicker mcp
 ```
 
-### Option 2b: With Screenshot Saving
+### Option 2b: Custom Screenshot Directory
 
-To enable saving screenshots to disk, add the `--screenshot-dir` flag:
+By default, screenshots are saved to:
+- macOS: `~/Pictures/Vibium/`
+- Linux: `~/Pictures/Vibium/`
+- Windows: `%USERPROFILE%\Pictures\Vibium\`
+
+To use a different directory:
 
 ```bash
 claude mcp add vibium -- ./clicker/bin/clicker mcp --screenshot-dir ./screenshots
 ```
 
-Without this flag, screenshots are returned as base64 inline only (no file saving).
+To disable file saving (base64 inline only):
+
+```bash
+claude mcp add vibium -- ./clicker/bin/clicker mcp --screenshot-dir ""
+```
 
 ### Option 3: Using Absolute Path
 
@@ -99,15 +109,15 @@ When Claude Code starts, it connects to each configured MCP server and performs 
 **Step 1: Initialize** - Establish the connection and exchange capabilities
 
 ```
-→ {"method": "initialize", "params": {"capabilities": {}}}
-← {"result": {"capabilities": {"tools": {}}, "serverInfo": {"name": "vibium", "version": "0.1.0"}}}
+→ {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"capabilities": {}}}
+← {"jsonrpc": "2.0", "id": 1, "result": {"capabilities": {"tools": {}}, "serverInfo": {"name": "vibium", "version": "0.1.0"}}}
 ```
 
 **Step 2: List Tools** - Get available tools with their schemas
 
 ```
-→ {"method": "tools/list"}
-← {"result": {"tools": [
+→ {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}
+← {"jsonrpc": "2.0", "id": 2, "result": {"tools": [
     {"name": "browser_launch", "description": "Launch a new browser session", "inputSchema": {...}},
     {"name": "browser_navigate", "description": "Navigate to a URL", "inputSchema": {...}},
     ...
