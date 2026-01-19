@@ -13,7 +13,7 @@ This tutorial covers how to configure Vibium as an MCP (Model Context Protocol) 
 ### Option 1: Using the CLI (Recommended)
 
 ```bash
-gemini mcp add vibium -- npx -y vibium
+gemini mcp add vibium npx -y vibium
 ```
 
 ### Option 2: Manual Configuration
@@ -38,7 +38,7 @@ For project-specific config, create `.gemini/settings.json` in your project dire
 If you built clicker locally:
 
 ```bash
-gemini mcp add vibium -- /path/to/clicker mcp
+gemini mcp add vibium /path/to/clicker mcp
 ```
 
 Or in `settings.json`:
@@ -68,7 +68,7 @@ To use a different directory:
   "mcpServers": {
     "vibium": {
       "command": "npx",
-      "args": ["-y", "vibium", "--", "--screenshot-dir", "./screenshots"]
+      "args": ["-y", "vibium", "--screenshot-dir", "./screenshots"]
     }
   }
 }
@@ -81,7 +81,7 @@ To disable file saving (base64 inline only):
   "mcpServers": {
     "vibium": {
       "command": "npx",
-      "args": ["-y", "vibium", "--", "--screenshot-dir", ""]
+      "args": ["-y", "vibium", "--screenshot-dir", ""]
     }
   }
 }
