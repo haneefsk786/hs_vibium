@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 
 def get_binary_path() -> str:
     """Get the path to the clicker binary."""
