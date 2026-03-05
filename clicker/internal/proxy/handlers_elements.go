@@ -151,6 +151,11 @@ func buildCSSFindScript() string {
 			if (!root) return null;
 			const el = root.querySelector(selector);
 			if (!el) return null;
+			if (el.scrollIntoViewIfNeeded) {
+				el.scrollIntoViewIfNeeded(true);
+			} else {
+				el.scrollIntoView({ block: 'center', inline: 'nearest' });
+			}
 			const rect = el.getBoundingClientRect();
 			return JSON.stringify({
 				tag: el.tagName.toLowerCase(),
@@ -325,6 +330,11 @@ func buildSemanticFindScript() string {
 			const found = collectMatches(root, selector, role, text, label, placeholder, alt, title, testid, xpath);
 			const best = pickBest(found, text);
 			if (!best) return null;
+			if (best.scrollIntoViewIfNeeded) {
+				best.scrollIntoViewIfNeeded(true);
+			} else {
+				best.scrollIntoView({ block: 'center', inline: 'nearest' });
+			}
 			return JSON.stringify(toInfo(best));
 		}
 	`
