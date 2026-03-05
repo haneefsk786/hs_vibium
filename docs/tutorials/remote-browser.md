@@ -69,6 +69,10 @@ Or in your Claude Desktop / Claude Code config:
 
 ### JavaScript
 
+```bash
+npm install vibium
+```
+
 ```javascript
 const { browser } = require('vibium/sync')
 
@@ -83,6 +87,10 @@ bro.close()
 ```
 
 ### Python
+
+```bash
+pip install vibium
+```
 
 ```python
 from vibium.sync_api import browser
