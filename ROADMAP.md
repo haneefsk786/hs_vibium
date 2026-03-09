@@ -84,13 +84,13 @@ Vibium's architecture follows the classic robotics control loop:
 **API:**
 ```java
 import com.vibium.Browser;
-import com.vibium.Vibe;
 
-Vibe vibe = Browser.launch();
+var bro = Browser.start();
+var vibe = bro.page();
 vibe.go("https://example.com");
 var el = vibe.find("a");
 el.click();
-vibe.quit();
+bro.stop();
 ```
 
 **When to build:** When enterprise users request it, likely after V1 is proven stable.
