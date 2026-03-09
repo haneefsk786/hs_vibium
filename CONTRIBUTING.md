@@ -115,7 +115,7 @@ Sync example:
 
 ```javascript
 const { browser } = require('./dist/sync')
-const bro = browser.launch()
+const bro = browser.start()
 const vibe = bro.page()
 vibe.go('https://example.com')
 
@@ -128,14 +128,14 @@ console.log('Page title:', title)
 
 const shot = vibe.screenshot()
 require('fs').writeFileSync('test.png', shot)
-bro.close()
+bro.stop()
 ```
 
 Async example:
 
 ```javascript
 const { browser } = await import('./dist/index.mjs')
-const bro = await browser.launch()
+const bro = await browser.start()
 const vibe = await bro.page()
 await vibe.go('https://example.com')
 
@@ -148,7 +148,7 @@ console.log('Page title:', title)
 
 const shot = await vibe.screenshot()
 require('fs').writeFileSync('test.png', shot)
-await bro.close()
+await bro.stop()
 ```
 
 ---
@@ -186,7 +186,7 @@ pip install vibium
 ```python
 from vibium import browser
 
-bro = browser.launch()
+bro = browser.start()
 vibe = bro.page()
 vibe.go("https://example.com")
 
@@ -200,7 +200,7 @@ print(f"Page title: {title}")
 with open("screenshot.png", "wb") as f:
     f.write(vibe.screenshot())
 
-bro.close()
+bro.stop()
 ```
 
 ### Async Example
@@ -210,7 +210,7 @@ import asyncio
 from vibium.async_api import browser
 
 async def main():
-    bro = await browser.launch()
+    bro = await browser.start()
     vibe = await bro.page()
     await vibe.go("https://example.com")
 
@@ -224,7 +224,7 @@ async def main():
     with open("screenshot.png", "wb") as f:
         f.write(await vibe.screenshot())
 
-    await bro.close()
+    await bro.stop()
 
 asyncio.run(main())
 ```
