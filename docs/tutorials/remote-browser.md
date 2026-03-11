@@ -82,6 +82,21 @@ Or in your Claude Desktop / Claude Code config:
 ### JavaScript
 
 ```javascript
+import { browser } from 'vibium'
+
+const bro = await browser.start('ws://your-server:9515/session')
+const page = await bro.page()
+
+await page.go('https://example.com')
+console.log(await page.title())          // "Example Domain"
+console.log(await page.find('h1').text()) // "Example Domain"
+
+await bro.stop()
+```
+
+Sync API:
+
+```javascript
 const { browser } = require('vibium/sync')
 
 const bro = browser.start('ws://your-server:9515/session')
@@ -99,6 +114,21 @@ bro.stop()
 ```bash
 pip install vibium
 ```
+
+```python
+from vibium.async_api import browser
+
+bro = await browser.start("ws://your-server:9515/session")
+page = await bro.page()
+
+await page.go("https://example.com")
+print(await page.title())          # "Example Domain"
+print(await page.find("h1").text())    # "Example Domain"
+
+await bro.stop()
+```
+
+Sync API:
 
 ```python
 from vibium.sync_api import browser
@@ -137,12 +167,28 @@ vibium daemon start --connect wss://cloud.example.com/session \
 **JavaScript:**
 
 ```javascript
+const bro = await browser.start('wss://cloud.example.com/bidi', {
+  headers: { 'Authorization': 'Bearer my-token' }
+})
+```
+
+Sync:
+
+```javascript
 const bro = browser.start('wss://cloud.example.com/bidi', {
   headers: { 'Authorization': 'Bearer my-token' }
 })
 ```
 
 **Python:**
+
+```python
+bro = await browser.start("wss://cloud.example.com/bidi", headers={
+    "Authorization": "Bearer my-token",
+})
+```
+
+Sync:
 
 ```python
 bro = browser.start("wss://cloud.example.com/bidi", headers={
