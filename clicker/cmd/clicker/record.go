@@ -18,22 +18,27 @@ func newRecordCmd() *cobra.Command {
 		Use:   "start",
 		Short: "Start a recording",
 		Example: `  vibium record start --screenshots
-  # Start recording with periodic screenshots (JPEG, quality 0.5)
+  # Start recording with per-action screenshots (JPEG, quality 0.5)
 
   vibium record start --screenshots --snapshots
   # Start recording with screenshots and HTML snapshots
 
-  vibium record start --snapshots --format png
+  vibium record start --screenshots --format png
   # Use PNG format instead of JPEG (larger files, lossless)
 
-  vibium record start --snapshots --quality 0.5
-  # Lower JPEG quality for smaller recording files`,
+  vibium record start --screenshots --quality 0.1
+  # Lower JPEG quality for smaller recording files
+
+  vibium record start --screenshots --title "Login Flow"
+  # Set a title shown in the trace viewer`,
 		Args: cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			screenshots, _ := cmd.Flags().GetBool("screenshots")
 			snapshots, _ := cmd.Flags().GetBool("snapshots")
 			bidi, _ := cmd.Flags().GetBool("bidi")
 			name, _ := cmd.Flags().GetString("name")
+			title, _ := cmd.Flags().GetString("title")
+			sources, _ := cmd.Flags().GetBool("sources")
 			format, _ := cmd.Flags().GetString("format")
 			quality, _ := cmd.Flags().GetFloat64("quality")
 
@@ -41,11 +46,17 @@ func newRecordCmd() *cobra.Command {
 			if name != "" {
 				callArgs["name"] = name
 			}
+			if title != "" {
+				callArgs["title"] = title
+			}
 			if screenshots {
 				callArgs["screenshots"] = true
 			}
 			if snapshots {
 				callArgs["snapshots"] = true
+			}
+			if sources {
+				callArgs["sources"] = true
 			}
 			if bidi {
 				callArgs["bidi"] = true
@@ -64,10 +75,12 @@ func newRecordCmd() *cobra.Command {
 			printResult(result)
 		},
 	}
-	startCmd.Flags().Bool("screenshots", false, "Capture screenshots periodically")
+	startCmd.Flags().Bool("screenshots", false, "Capture screenshots after each action")
 	startCmd.Flags().Bool("snapshots", false, "Capture HTML snapshots")
+	startCmd.Flags().Bool("sources", false, "Include source information")
 	startCmd.Flags().Bool("bidi", false, "Record raw BiDi commands in the recording")
 	startCmd.Flags().String("name", "", "Name for the recording")
+	startCmd.Flags().String("title", "", "Title shown in trace viewer (defaults to name)")
 	startCmd.Flags().String("format", "jpeg", "Screenshot format: jpeg or png")
 	startCmd.Flags().Float64("quality", 0.5, "JPEG quality 0.0-1.0 (ignored for png)")
 
@@ -97,7 +110,99 @@ func newRecordCmd() *cobra.Command {
 	}
 	stopCmd.Flags().StringP("output", "o", "", "Output file path (default: record.zip)")
 
+	startGroupCmd := &cobra.Command{
+		Use:   "start-group <name>",
+		Short: "Start a named group in the recording",
+		Example: `  vibium record start-group "Login"
+  # Groups nest actions in the trace viewer`,
+		Args: cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			result, err := daemonCall("browser_record_start_group", map[string]interface{}{
+				"name": args[0],
+			})
+			if err != nil {
+				printError(err)
+				return
+			}
+			printResult(result)
+		},
+	}
+
+	stopGroupCmd := &cobra.Command{
+		Use:   "stop-group",
+		Short: "End the current recording group",
+		Example: `  vibium record stop-group`,
+		Args:    cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			result, err := daemonCall("browser_record_stop_group", map[string]interface{}{})
+			if err != nil {
+				printError(err)
+				return
+			}
+			printResult(result)
+		},
+	}
+
+	startChunkCmd := &cobra.Command{
+		Use:   "start-chunk",
+		Short: "Start a new chunk within the current recording",
+		Example: `  vibium record start-chunk
+  # Start a new chunk (for splitting long recordings)
+
+  vibium record start-chunk --name "part2" --title "Checkout Flow"`,
+		Args: cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			name, _ := cmd.Flags().GetString("name")
+			title, _ := cmd.Flags().GetString("title")
+
+			callArgs := map[string]interface{}{}
+			if name != "" {
+				callArgs["name"] = name
+			}
+			if title != "" {
+				callArgs["title"] = title
+			}
+			result, err := daemonCall("browser_record_start_chunk", callArgs)
+			if err != nil {
+				printError(err)
+				return
+			}
+			printResult(result)
+		},
+	}
+	startChunkCmd.Flags().String("name", "", "Name for the chunk")
+	startChunkCmd.Flags().String("title", "", "Title shown in trace viewer")
+
+	stopChunkCmd := &cobra.Command{
+		Use:   "stop-chunk",
+		Short: "Package current chunk into a ZIP file (recording stays active)",
+		Example: `  vibium record stop-chunk
+  # Save chunk to chunk.zip
+
+  vibium record stop-chunk -o part1.zip`,
+		Args: cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			output, _ := cmd.Flags().GetString("output")
+
+			callArgs := map[string]interface{}{}
+			if output != "" {
+				callArgs["path"] = output
+			}
+			result, err := daemonCall("browser_record_stop_chunk", callArgs)
+			if err != nil {
+				printError(err)
+				return
+			}
+			printResult(result)
+		},
+	}
+	stopChunkCmd.Flags().StringP("output", "o", "", "Output file path (default: chunk.zip)")
+
 	recordCmd.AddCommand(startCmd)
 	recordCmd.AddCommand(stopCmd)
+	recordCmd.AddCommand(startGroupCmd)
+	recordCmd.AddCommand(stopGroupCmd)
+	recordCmd.AddCommand(startChunkCmd)
+	recordCmd.AddCommand(stopChunkCmd)
 	return recordCmd
 }

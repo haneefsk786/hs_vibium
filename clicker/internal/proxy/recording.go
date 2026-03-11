@@ -922,7 +922,7 @@ func (t *Recorder) StartScreenshotLoop(captureFunc func() (string, string, error
 					continue
 				}
 
-				w, h := imageDimensions(imgData)
+				w, h := ImageDimensions(imgData)
 				t.AddScreenshot(imgData, pageID, w, h, time.Time{})
 			}
 		}
@@ -1050,8 +1050,8 @@ func jpegDimensions(data []byte) (int, int) {
 	return 0, 0
 }
 
-// imageDimensions detects the image format (PNG or JPEG) and returns width, height.
-func imageDimensions(data []byte) (int, int) {
+// ImageDimensions detects the image format (PNG or JPEG) and returns width, height.
+func ImageDimensions(data []byte) (int, int) {
 	if len(data) >= 8 && data[0] == 0x89 && data[1] == 'P' && data[2] == 'N' && data[3] == 'G' {
 		return pngDimensions(data)
 	}

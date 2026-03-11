@@ -8,8 +8,9 @@ import (
 
 // Client is a BiDi client that wraps a WebSocket connection.
 type Client struct {
-	conn    *Connection
-	verbose bool
+	conn         *Connection
+	verbose      bool
+	eventHandler func(msg string) // optional callback for BiDi events
 }
 
 // NewClient creates a new BiDi client from a WebSocket connection.
@@ -20,6 +21,12 @@ func NewClient(conn *Connection) *Client {
 // SetVerbose enables or disables verbose logging of JSON messages.
 func (c *Client) SetVerbose(verbose bool) {
 	c.verbose = verbose
+}
+
+// SetEventHandler sets a callback for BiDi events received while waiting
+// for command responses. Pass nil to stop forwarding events.
+func (c *Client) SetEventHandler(handler func(msg string)) {
+	c.eventHandler = handler
 }
 
 // defaultCommandTimeout is the maximum time to wait for a BiDi command response.
@@ -80,10 +87,13 @@ func (c *Client) SendCommandWithTimeout(method string, params interface{}, timeo
 			return msg, nil
 		}
 
-		// If it's an event, skip it for now (could be handled by event listener)
+		// If it's an event, forward to handler if set, otherwise skip
 		if msg.IsEvent() {
 			if c.verbose {
 				fmt.Printf("       (event, skipping)\n")
+			}
+			if c.eventHandler != nil {
+				c.eventHandler(resp)
 			}
 			continue
 		}

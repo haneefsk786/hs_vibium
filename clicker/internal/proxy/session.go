@@ -76,7 +76,8 @@ func (p *ProxySession) SetLastElementBox(box *BoxInfo) {
 // error responses as Go errors, so checkBidiError on wrapped responses is a
 // safe no-op.
 type MCPSession struct {
-	Client *bidi.Client
+	Client    *bidi.Client
+	OnBoxSet  func(box *BoxInfo) // optional callback when element box is set
 }
 
 // NewMCPSession creates an MCPSession.
@@ -110,7 +111,11 @@ func (m *MCPSession) SendBidiCommandWithTimeout(method string, params map[string
 	return wrapped, nil
 }
 
-func (m *MCPSession) SetLastElementBox(box *BoxInfo) {}
+func (m *MCPSession) SetLastElementBox(box *BoxInfo) {
+	if m.OnBoxSet != nil {
+		m.OnBoxSet(box)
+	}
+}
 
 func (m *MCPSession) GetContextID() (string, error) {
 	tree, err := m.Client.GetTree()

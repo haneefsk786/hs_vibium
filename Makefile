@@ -220,7 +220,7 @@ test-mcp: build-go
 # Run daemon tests (sequential - daemon lifecycle)
 test-daemon: build-go
 	@echo "--- Daemon Tests ---"
-	$(TIMEOUT_CMD) node --test $(TEST_FLAGS) --test-concurrency=1 tests/daemon/lifecycle.test.js tests/daemon/concurrency.test.js tests/daemon/cli-commands.test.js tests/daemon/find-refs.test.js tests/daemon/connect.test.js
+	$(TIMEOUT_CMD) node --test $(TEST_FLAGS) --test-concurrency=1 tests/daemon/lifecycle.test.js tests/daemon/concurrency.test.js tests/daemon/cli-commands.test.js tests/daemon/find-refs.test.js tests/daemon/connect.test.js tests/daemon/recording.test.js
 
 # Run Python client tests
 test-python: build-go install-browser

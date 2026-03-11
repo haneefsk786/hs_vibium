@@ -308,7 +308,7 @@ func (r *Router) captureActionSnapshot(session *BrowserSession, recorder *Record
 	if err != nil {
 		return ""
 	}
-	w, h := imageDimensions(imgData)
+	w, h := ImageDimensions(imgData)
 
 	// Store image in resources for Record Player
 	hash := sha1Hex(imgData)
@@ -408,6 +408,6 @@ func (r *Router) capturePostActionScreenshot(session *BrowserSession, recorder *
 		return
 	}
 
-	w, h := imageDimensions(imgData)
+	w, h := ImageDimensions(imgData)
 	recorder.AddScreenshot(imgData, context, w, h, actionEnd)
 }

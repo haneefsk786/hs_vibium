@@ -1259,7 +1259,7 @@ func GetToolSchemas() []Tool {
 		// --- Recording ---
 		{
 			Name:        "browser_record_start",
-			Description: "Start a browser recording (screenshots and/or HTML snapshots)",
+			Description: "Start a browser recording (screenshots and/or HTML snapshots). Output is Playwright trace viewer compatible.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -1267,9 +1267,13 @@ func GetToolSchemas() []Tool {
 						"type":        "string",
 						"description": "Name for the recording (default: \"record\")",
 					},
+					"title": map[string]interface{}{
+						"type":        "string",
+						"description": "Title shown in trace viewer (defaults to name)",
+					},
 					"screenshots": map[string]interface{}{
 						"type":        "boolean",
-						"description": "Capture screenshots periodically (default: false)",
+						"description": "Capture screenshots after each action (default: false)",
 						"default":     false,
 					},
 					"snapshots": map[string]interface{}{
@@ -1277,10 +1281,26 @@ func GetToolSchemas() []Tool {
 						"description": "Capture HTML snapshots (default: false)",
 						"default":     false,
 					},
+					"sources": map[string]interface{}{
+						"type":        "boolean",
+						"description": "Include source information (default: false)",
+						"default":     false,
+					},
 					"bidi": map[string]interface{}{
 						"type":        "boolean",
 						"description": "Record raw BiDi commands in the recording (default: false)",
 						"default":     false,
+					},
+					"format": map[string]interface{}{
+						"type":        "string",
+						"description": "Screenshot format: \"jpeg\" or \"png\" (default: \"jpeg\")",
+						"enum":        []string{"jpeg", "png"},
+						"default":     "jpeg",
+					},
+					"quality": map[string]interface{}{
+						"type":        "number",
+						"description": "JPEG quality 0.0-1.0 (default: 0.5, ignored for png)",
+						"default":     0.5,
 					},
 				},
 				"additionalProperties": false,
@@ -1288,13 +1308,69 @@ func GetToolSchemas() []Tool {
 		},
 		{
 			Name:        "browser_record_stop",
-			Description: "Stop recording and save to a ZIP file",
+			Description: "Stop recording and save to a Playwright-compatible trace ZIP file",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
 					"path": map[string]interface{}{
 						"type":        "string",
 						"description": "Output file path (default: record.zip)",
+					},
+				},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "browser_record_start_group",
+			Description: "Start a named group in the recording (groups nest actions in the trace viewer)",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"name": map[string]interface{}{
+						"type":        "string",
+						"description": "Name for the group",
+					},
+				},
+				"required":             []string{"name"},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "browser_record_stop_group",
+			Description: "End the current recording group",
+			InputSchema: map[string]interface{}{
+				"type":                 "object",
+				"properties":           map[string]interface{}{},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "browser_record_start_chunk",
+			Description: "Start a new chunk within the current recording (for splitting long recordings)",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"name": map[string]interface{}{
+						"type":        "string",
+						"description": "Name for the chunk",
+					},
+					"title": map[string]interface{}{
+						"type":        "string",
+						"description": "Title shown in trace viewer (defaults to name)",
+					},
+				},
+				"additionalProperties": false,
+			},
+		},
+		{
+			Name:        "browser_record_stop_chunk",
+			Description: "Package the current recording chunk into a ZIP file (recording remains active)",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"path": map[string]interface{}{
+						"type":        "string",
+						"description": "Output file path (default: chunk.zip)",
 					},
 				},
 				"additionalProperties": false,

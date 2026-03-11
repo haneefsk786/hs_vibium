@@ -5,7 +5,10 @@
 
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert');
-const { spawn, execFileSync } = require('node:child_process');
+const { spawn, execFileSync, execSync } = require('node:child_process');
+const fs = require('node:fs');
+const path = require('node:path');
+const os = require('node:os');
 const { VIBIUM } = require('../helpers');
 
 /**
@@ -135,12 +138,12 @@ describe('MCP Server: Protocol', () => {
     assert.ok(response.result.capabilities.tools, 'Should have tools capability');
   });
 
-  test('tools/list returns all 82 browser tools', async () => {
+  test('tools/list returns all 85 browser tools', async () => {
     const response = await client.call('tools/list', {});
 
     assert.ok(response.result, 'Should have result');
     assert.ok(response.result.tools, 'Should have tools array');
-    assert.strictEqual(response.result.tools.length, 81, 'Should have 81 tools');
+    assert.strictEqual(response.result.tools.length, 85, 'Should have 85 tools');
 
     const toolNames = response.result.tools.map(t => t.name);
     const expectedTools = [
@@ -173,6 +176,8 @@ describe('MCP Server: Protocol', () => {
       'browser_frames', 'browser_frame',
       'browser_upload',
       'browser_record_start', 'browser_record_stop',
+      'browser_record_start_group', 'browser_record_stop_group',
+      'browser_record_start_chunk', 'browser_record_stop_chunk',
       'browser_storage_state', 'browser_restore_storage',
       'browser_download_set_dir',
     ];
@@ -639,5 +644,409 @@ describe('MCP Server: Viewport & Window', () => {
     const text = response.result.content[0].text;
     assert.ok(text.includes('900'), 'Should reflect width 900');
     assert.ok(text.includes('700'), 'Should reflect height 700');
+  });
+});
+
+// --- Recording helpers ---
+
+function unzipRecording(zipPath) {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vibium-mcp-rec-'));
+  execSync(`unzip -o "${zipPath}" -d "${tmpDir}/extracted"`, { stdio: 'pipe' });
+  return { tmpDir, extractedDir: path.join(tmpDir, 'extracted') };
+}
+
+function cleanupDir(dir) {
+  fs.rmSync(dir, { recursive: true, force: true });
+}
+
+function readRecordingEvents(extractedDir) {
+  const files = fs.readdirSync(extractedDir).filter(f => f.endsWith('.trace'));
+  const events = [];
+  for (const file of files) {
+    const content = fs.readFileSync(path.join(extractedDir, file), 'utf-8');
+    for (const line of content.split('\n')) {
+      if (line.trim()) {
+        events.push(JSON.parse(line));
+      }
+    }
+  }
+  return events;
+}
+
+function readNetworkEvents(extractedDir) {
+  const files = fs.readdirSync(extractedDir).filter(f => f.endsWith('.network'));
+  const events = [];
+  for (const file of files) {
+    const content = fs.readFileSync(path.join(extractedDir, file), 'utf-8');
+    for (const line of content.split('\n')) {
+      if (line.trim()) {
+        events.push(JSON.parse(line));
+      }
+    }
+  }
+  return events;
+}
+
+describe('MCP Server: Recording', { timeout: 120000 }, () => {
+  let client;
+  const tmpFiles = [];
+
+  function tmpPath(name) {
+    const p = path.join(os.tmpdir(), `vibium-mcp-rec-${Date.now()}-${name}`);
+    tmpFiles.push(p);
+    return p;
+  }
+
+  before(async () => {
+    client = new MCPClient();
+    await client.start();
+    await client.call('initialize', { capabilities: {} });
+
+    // Navigate to example.com so browser is launched
+    await client.call('tools/call', {
+      name: 'browser_navigate',
+      arguments: { url: 'https://example.com' },
+    });
+  });
+
+  after(() => {
+    client.stop();
+    for (const f of tmpFiles) {
+      try { fs.unlinkSync(f); } catch {}
+    }
+  });
+
+  test('browser_record_start begins recording', async () => {
+    const response = await client.call('tools/call', {
+      name: 'browser_record_start',
+      arguments: {},
+    });
+
+    assert.ok(response.result, 'Should have result');
+    assert.ok(!response.result.isError, 'Should not be an error');
+    assert.ok(
+      response.result.content[0].text.includes('started'),
+      'Should confirm recording started'
+    );
+
+    // Clean up
+    const stopPath = tmpPath('start-test.zip');
+    await client.call('tools/call', {
+      name: 'browser_record_stop',
+      arguments: { path: stopPath },
+    });
+  });
+
+  test('browser_record_start rejects when already recording', async () => {
+    // Start recording
+    await client.call('tools/call', {
+      name: 'browser_record_start',
+      arguments: {},
+    });
+
+    // Try to start again
+    const response = await client.call('tools/call', {
+      name: 'browser_record_start',
+      arguments: {},
+    });
+
+    assert.ok(response.result, 'Should have result');
+    assert.strictEqual(response.result.isError, true, 'Should be an error');
+    assert.ok(
+      response.result.content[0].text.includes('already recording'),
+      'Should say already recording'
+    );
+
+    // Clean up
+    const stopPath = tmpPath('double-start.zip');
+    await client.call('tools/call', {
+      name: 'browser_record_stop',
+      arguments: { path: stopPath },
+    });
+  });
+
+  test('browser_record_stop saves valid Playwright-compatible zip', async () => {
+    // Start recording
+    await client.call('tools/call', {
+      name: 'browser_record_start',
+      arguments: {},
+    });
+
+    // Navigate to generate events
+    await client.call('tools/call', {
+      name: 'browser_navigate',
+      arguments: { url: 'https://example.com' },
+    });
+
+    // Stop and save
+    const zipPath = tmpPath('valid-zip.zip');
+    const response = await client.call('tools/call', {
+      name: 'browser_record_stop',
+      arguments: { path: zipPath },
+    });
+
+    assert.ok(!response.result.isError, 'Should not be an error');
+    assert.ok(
+      response.result.content[0].text.includes('Recording saved'),
+      'Should confirm save'
+    );
+
+    // Verify file exists and has content
+    assert.ok(fs.existsSync(zipPath), 'Zip file should exist');
+    assert.ok(fs.statSync(zipPath).size > 0, 'Zip file should not be empty');
+
+    // Unzip and verify structure
+    const { tmpDir, extractedDir } = unzipRecording(zipPath);
+    try {
+      const files = fs.readdirSync(extractedDir);
+      assert.ok(files.some(f => f.endsWith('.trace')), 'Should have .trace file');
+      assert.ok(files.some(f => f.endsWith('.network')), 'Should have .network file');
+
+      // Verify trace events
+      const events = readRecordingEvents(extractedDir);
+      assert.ok(events.length > 0, 'Should have recording events');
+      assert.strictEqual(events[0].type, 'context-options');
+      assert.strictEqual(events[0].browserName, 'chromium');
+
+      // Verify before/after action events (unified with proxy path)
+      const beforeEvents = events.filter(e => e.type === 'before' && e.method !== 'group');
+      assert.ok(beforeEvents.length > 0, 'Should have before events for actions');
+      assert.ok(beforeEvents[0].callId, 'before event should have callId');
+      assert.ok(beforeEvents[0].title, 'before event should have title');
+
+      const afterEvents = events.filter(e => e.type === 'after');
+      assert.ok(afterEvents.length > 0, 'Should have after events for actions');
+      assert.ok(afterEvents[0].callId, 'after event should have callId');
+      assert.ok(afterEvents[0].endTime, 'after event should have endTime');
+
+      // Verify before/after callIds match
+      const beforeCallId = beforeEvents[0].callId;
+      const matchingAfter = afterEvents.find(e => e.callId === beforeCallId);
+      assert.ok(matchingAfter, 'Should have matching after event for first before event');
+
+      // Verify network events
+      const networkEvents = readNetworkEvents(extractedDir);
+      assert.ok(networkEvents.length > 0, 'Should have network events (resource-snapshot)');
+      assert.strictEqual(networkEvents[0].type, 'resource-snapshot', 'Network event should be resource-snapshot');
+    } finally {
+      cleanupDir(tmpDir);
+    }
+  });
+
+  test('browser_record_stop rejects when not recording', async () => {
+    const response = await client.call('tools/call', {
+      name: 'browser_record_stop',
+      arguments: {},
+    });
+
+    assert.ok(response.result, 'Should have result');
+    assert.strictEqual(response.result.isError, true, 'Should be an error');
+    assert.ok(
+      response.result.content[0].text.includes('no recording'),
+      'Should say no recording in progress'
+    );
+  });
+
+  test('browser_record_start with screenshots captures per-action screenshots', async () => {
+    await client.call('tools/call', {
+      name: 'browser_record_start',
+      arguments: { screenshots: true },
+    });
+
+    // Perform actions to trigger screenshots
+    await client.call('tools/call', {
+      name: 'browser_navigate',
+      arguments: { url: 'https://example.com' },
+    });
+    await client.call('tools/call', {
+      name: 'browser_click',
+      arguments: { selector: 'a' },
+    });
+
+    const zipPath = tmpPath('screenshots.zip');
+    await client.call('tools/call', {
+      name: 'browser_record_stop',
+      arguments: { path: zipPath },
+    });
+
+    const { tmpDir, extractedDir } = unzipRecording(zipPath);
+    try {
+      // Check for resources directory with screenshot files
+      const resourcesDir = path.join(extractedDir, 'resources');
+      assert.ok(fs.existsSync(resourcesDir), 'resources/ directory should exist');
+      const resources = fs.readdirSync(resourcesDir);
+      assert.ok(resources.length > 0, 'Should have screenshot resources');
+
+      // Check for screencast-frame events in trace
+      const events = readRecordingEvents(extractedDir);
+      const frames = events.filter(e => e.type === 'screencast-frame');
+      assert.ok(frames.length > 0, 'Should have screencast-frame events');
+      assert.ok(frames[0].sha1, 'screencast-frame should have sha1');
+      assert.ok(frames[0].width > 0, 'screencast-frame should have width');
+      assert.ok(frames[0].height > 0, 'screencast-frame should have height');
+
+      // Verify before/after action events are present alongside screenshots
+      const beforeEvents = events.filter(e => e.type === 'before' && e.method !== 'group');
+      assert.ok(beforeEvents.length >= 2, `Should have >= 2 before events (navigate + click), got ${beforeEvents.length}`);
+
+      // Check action titles map correctly
+      const navBefore = beforeEvents.find(e => e.title === 'Page.navigate');
+      assert.ok(navBefore, 'Should have before event with title Page.navigate');
+      const clickBefore = beforeEvents.find(e => e.title === 'Element.click');
+      assert.ok(clickBefore, 'Should have before event with title Element.click');
+
+      // Check input event with point and box for click action
+      const inputEvents = events.filter(e => e.type === 'input');
+      assert.ok(inputEvents.length > 0, 'Should have input events for click actions');
+      assert.ok(inputEvents[0].point, 'input event should have point');
+      assert.ok(typeof inputEvents[0].point.x === 'number', 'point.x should be a number');
+      assert.ok(typeof inputEvents[0].point.y === 'number', 'point.y should be a number');
+      assert.ok(inputEvents[0].box, 'input event should have box');
+      assert.ok(inputEvents[0].box.width > 0, 'box.width should be > 0');
+      assert.ok(inputEvents[0].box.height > 0, 'box.height should be > 0');
+    } finally {
+      cleanupDir(tmpDir);
+    }
+  });
+
+  test('browser_record_start_group / stop_group adds group markers', async () => {
+    await client.call('tools/call', {
+      name: 'browser_record_start',
+      arguments: {},
+    });
+
+    // Start group
+    const groupResp = await client.call('tools/call', {
+      name: 'browser_record_start_group',
+      arguments: { name: 'test-group' },
+    });
+    assert.ok(!groupResp.result.isError, 'start_group should not error');
+    assert.ok(groupResp.result.content[0].text.includes('test-group'), 'Should confirm group name');
+
+    // Perform action inside group
+    await client.call('tools/call', {
+      name: 'browser_navigate',
+      arguments: { url: 'https://example.com' },
+    });
+
+    // Stop group
+    const stopGroupResp = await client.call('tools/call', {
+      name: 'browser_record_stop_group',
+      arguments: {},
+    });
+    assert.ok(!stopGroupResp.result.isError, 'stop_group should not error');
+
+    // Stop recording
+    const zipPath = tmpPath('groups.zip');
+    await client.call('tools/call', {
+      name: 'browser_record_stop',
+      arguments: { path: zipPath },
+    });
+
+    const { tmpDir, extractedDir } = unzipRecording(zipPath);
+    try {
+      const events = readRecordingEvents(extractedDir);
+
+      // Look for group before event
+      const beforeEvents = events.filter(e => e.type === 'before' && e.title === 'test-group' && e.method === 'group');
+      assert.ok(beforeEvents.length > 0, 'Should have before event with title "test-group" and method "group"');
+
+      // Look for matching after event
+      const callId = beforeEvents[0].callId;
+      const afterEvents = events.filter(e => e.type === 'after' && e.callId === callId);
+      assert.ok(afterEvents.length > 0, 'Should have matching after event with same callId');
+    } finally {
+      cleanupDir(tmpDir);
+    }
+  });
+
+  test('browser_record_start_chunk / stop_chunk saves chunk zip', async () => {
+    await client.call('tools/call', {
+      name: 'browser_record_start',
+      arguments: {},
+    });
+
+    // First chunk: navigate
+    await client.call('tools/call', {
+      name: 'browser_navigate',
+      arguments: { url: 'https://example.com' },
+    });
+
+    // Stop first chunk
+    const chunkPath1 = tmpPath('chunk1.zip');
+    const chunk1Resp = await client.call('tools/call', {
+      name: 'browser_record_stop_chunk',
+      arguments: { path: chunkPath1 },
+    });
+    assert.ok(!chunk1Resp.result.isError, 'stop_chunk should not error');
+    assert.ok(chunk1Resp.result.content[0].text.includes('Chunk saved'), 'Should confirm chunk saved');
+
+    // Start second chunk
+    await client.call('tools/call', {
+      name: 'browser_record_start_chunk',
+      arguments: {},
+    });
+
+    // Navigate again
+    await client.call('tools/call', {
+      name: 'browser_navigate',
+      arguments: { url: 'https://example.com' },
+    });
+
+    // Stop second chunk
+    const chunkPath2 = tmpPath('chunk2.zip');
+    await client.call('tools/call', {
+      name: 'browser_record_stop_chunk',
+      arguments: { path: chunkPath2 },
+    });
+
+    // Verify both files exist and have events
+    assert.ok(fs.existsSync(chunkPath1), 'Chunk 1 should exist');
+    assert.ok(fs.existsSync(chunkPath2), 'Chunk 2 should exist');
+
+    const { tmpDir: td1, extractedDir: ed1 } = unzipRecording(chunkPath1);
+    const { tmpDir: td2, extractedDir: ed2 } = unzipRecording(chunkPath2);
+    try {
+      const events1 = readRecordingEvents(ed1);
+      assert.ok(events1.length > 0, 'Chunk 1 should have events');
+      const events2 = readRecordingEvents(ed2);
+      assert.ok(events2.length > 0, 'Chunk 2 should have events');
+    } finally {
+      cleanupDir(td1);
+      cleanupDir(td2);
+    }
+
+    // Stop recording to clean up
+    const stopPath = tmpPath('chunks-final.zip');
+    await client.call('tools/call', {
+      name: 'browser_record_stop',
+      arguments: { path: stopPath },
+    });
+  });
+
+  test('browser_record_start with title sets trace viewer title', async () => {
+    await client.call('tools/call', {
+      name: 'browser_record_start',
+      arguments: { title: 'My Test Title' },
+    });
+
+    await client.call('tools/call', {
+      name: 'browser_navigate',
+      arguments: { url: 'https://example.com' },
+    });
+
+    const zipPath = tmpPath('title.zip');
+    await client.call('tools/call', {
+      name: 'browser_record_stop',
+      arguments: { path: zipPath },
+    });
+
+    const { tmpDir, extractedDir } = unzipRecording(zipPath);
+    try {
+      const events = readRecordingEvents(extractedDir);
+      assert.strictEqual(events[0].title, 'My Test Title', 'First event should have the custom title');
+    } finally {
+      cleanupDir(tmpDir);
+    }
   });
 });

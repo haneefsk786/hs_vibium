@@ -1,7 +1,6 @@
 package mcp
 
 import (
-	"archive/zip"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -9,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/vibium/clicker/internal/bidi"
@@ -29,87 +27,9 @@ type Handlers struct {
 	connectHeaders http.Header // headers for remote WebSocket connection
 	refMap         map[string]string // @e1 -> CSS selector
 	lastMap        string            // last map output (for diff)
-	recorder       *recorder
+	recorder       *proxy.Recorder
 	downloadDir    string
-}
-
-// recorder records browser sessions (screenshots + snapshots).
-type recorder struct {
-	name        string
-	screenshots bool
-	snapshots   bool
-	startTime   time.Time
-	done        chan struct{}
-	mu          sync.Mutex
-	screenData  []string // base64-encoded PNGs
-	snapData    []string // HTML snapshots
-}
-
-func (t *recorder) addScreenshot(data string) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	t.screenData = append(t.screenData, data)
-}
-
-func (t *recorder) addSnapshot(html string) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	t.snapData = append(t.snapData, html)
-}
-
-func (t *recorder) writeZip(path string) error {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	f, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	w := zip.NewWriter(f)
-	defer w.Close()
-
-	// Write screenshots
-	for i, data := range t.screenData {
-		fw, err := w.Create(fmt.Sprintf("screenshots/%04d.png", i))
-		if err != nil {
-			return err
-		}
-		pngData, err := base64.StdEncoding.DecodeString(data)
-		if err != nil {
-			return err
-		}
-		if _, err := fw.Write(pngData); err != nil {
-			return err
-		}
-	}
-
-	// Write snapshots
-	for i, html := range t.snapData {
-		fw, err := w.Create(fmt.Sprintf("snapshots/%04d.html", i))
-		if err != nil {
-			return err
-		}
-		if _, err := fw.Write([]byte(html)); err != nil {
-			return err
-		}
-	}
-
-	// Write metadata
-	meta := map[string]interface{}{
-		"name":        t.name,
-		"startTime":   t.startTime.Format(time.RFC3339),
-		"screenshots":  len(t.screenData),
-		"snapshots":   len(t.snapData),
-	}
-	metaJSON, _ := json.MarshalIndent(meta, "", "  ")
-	fw, err := w.Create("metadata.json")
-	if err != nil {
-		return err
-	}
-	_, err = fw.Write(metaJSON)
-	return err
+	lastElementBox *proxy.BoxInfo // stashed by MCPSession.SetLastElementBox via callback
 }
 
 // NewHandlers creates a new Handlers instance.
@@ -124,10 +44,53 @@ func NewHandlers(screenshotDir string, headless bool, connectURL string, connect
 	}
 }
 
+// newSession creates an MCPSession that writes element box info back to
+// h.lastElementBox so Call() can include it in RecordActionEnd.
+func (h *Handlers) newSession() *proxy.MCPSession {
+	s := proxy.NewMCPSession(h.client)
+	s.OnBoxSet = func(box *proxy.BoxInfo) {
+		h.lastElementBox = box
+	}
+	return s
+}
+
 // Call executes a tool by name with the given arguments.
+// When recording is active, it wraps the dispatch with RecordAction/RecordActionEnd
+// to produce before/after events (matching the proxy path), and captures a
+// screenshot after each non-recording action completes.
 func (h *Handlers) Call(name string, args map[string]interface{}) (*ToolsCallResult, error) {
 	log.Debug("tool call", "name", name, "args", args)
 
+	var callId string
+	if h.recorder != nil && h.recorder.IsRecording() && !isRecordingCommand(name) {
+		callId = h.recorder.NextCallId()
+		pageId := h.getContext()
+		h.recorder.RecordAction(callId, mcpToolToMethod(name), args, "", pageId)
+		h.lastElementBox = nil
+	}
+
+	result, err := h.dispatch(name, args)
+
+	endTime := time.Now()
+
+	// Read and clear the element box stashed by MCPSession.SetLastElementBox
+	box := h.lastElementBox
+	h.lastElementBox = nil
+
+	// Per-action screenshot: capture after successful non-recording commands
+	if err == nil && h.recorder != nil && h.recorder.IsRecording() && !isRecordingCommand(name) {
+		h.captureRecordingScreenshot(endTime)
+	}
+
+	if callId != "" {
+		h.recorder.RecordActionEnd(callId, "", endTime, box)
+	}
+
+	return result, err
+}
+
+// dispatch routes a tool call to the appropriate handler method.
+func (h *Handlers) dispatch(name string, args map[string]interface{}) (*ToolsCallResult, error) {
 	switch name {
 	case "browser_start":
 		return h.browserLaunch(args)
@@ -285,6 +248,14 @@ func (h *Handlers) Call(name string, args map[string]interface{}) (*ToolsCallRes
 		return h.browserRecordStart(args)
 	case "browser_record_stop":
 		return h.browserRecordStop(args)
+	case "browser_record_start_group":
+		return h.browserRecordStartGroup(args)
+	case "browser_record_stop_group":
+		return h.browserRecordStopGroup(args)
+	case "browser_record_start_chunk":
+		return h.browserRecordStartChunk(args)
+	case "browser_record_stop_chunk":
+		return h.browserRecordStopChunk(args)
 	case "browser_storage_state":
 		return h.browserStorageState(args)
 	case "browser_restore_storage":
@@ -294,6 +265,282 @@ func (h *Handlers) Call(name string, args map[string]interface{}) (*ToolsCallRes
 	default:
 		return nil, fmt.Errorf("unknown tool: %s", name)
 	}
+}
+
+// isRecordingCommand returns true for commands that manage recording state
+// (to avoid capturing screenshots of recording operations themselves).
+func isRecordingCommand(name string) bool {
+	switch name {
+	case "browser_record_start", "browser_record_stop",
+		"browser_record_start_group", "browser_record_stop_group",
+		"browser_record_start_chunk", "browser_record_stop_chunk",
+		"browser_screenshot":
+		return true
+	}
+	return false
+}
+
+// getContext returns the first browsing context from the browser tree, or "".
+func (h *Handlers) getContext() string {
+	if h.client == nil {
+		return ""
+	}
+	tree, err := h.client.GetTree()
+	if err != nil || len(tree.Contexts) == 0 {
+		return ""
+	}
+	return tree.Contexts[0].Context
+}
+
+// mcpToolToMethod maps an MCP tool name to a vibium: method name so the
+// trace viewer shows the same action titles as the proxy path.
+func mcpToolToMethod(name string) string {
+	switch name {
+	// Navigation
+	case "browser_navigate":
+		return "vibium:page.navigate"
+	case "browser_back":
+		return "vibium:page.back"
+	case "browser_forward":
+		return "vibium:page.forward"
+	case "browser_reload":
+		return "vibium:page.reload"
+
+	// Element interaction
+	case "browser_click":
+		return "vibium:click"
+	case "browser_dblclick":
+		return "vibium:dblclick"
+	case "browser_fill":
+		return "vibium:fill"
+	case "browser_type":
+		return "vibium:type"
+	case "browser_press":
+		return "vibium:press"
+	case "browser_hover":
+		return "vibium:hover"
+	case "browser_select":
+		return "vibium:selectOption"
+	case "browser_check":
+		return "vibium:check"
+	case "browser_uncheck":
+		return "vibium:uncheck"
+	case "browser_focus":
+		return "vibium:focus"
+	case "browser_scroll_into_view":
+		return "vibium:scrollIntoView"
+	case "browser_drag":
+		return "vibium:dragTo"
+
+	// Keyboard/mouse
+	case "browser_keys":
+		return "vibium:keyboard.press"
+	case "browser_mouse_move":
+		return "vibium:mouse.move"
+	case "browser_mouse_down":
+		return "vibium:mouse.down"
+	case "browser_mouse_up":
+		return "vibium:mouse.up"
+	case "browser_mouse_click":
+		return "vibium:mouse.click"
+	case "browser_scroll":
+		return "vibium:page.scroll"
+
+	// Page queries
+	case "browser_find":
+		return "vibium:find"
+	case "browser_find_all":
+		return "vibium:findAll"
+	case "browser_get_text":
+		return "vibium:el.text"
+	case "browser_get_html":
+		return "vibium:el.html"
+	case "browser_get_url":
+		return "vibium:page.url"
+	case "browser_get_title":
+		return "vibium:page.title"
+	case "browser_get_value":
+		return "vibium:el.value"
+	case "browser_get_attribute":
+		return "vibium:el.attr"
+	case "browser_is_visible":
+		return "vibium:el.isVisible"
+	case "browser_is_enabled":
+		return "vibium:el.isEnabled"
+	case "browser_is_checked":
+		return "vibium:el.isChecked"
+	case "browser_count":
+		return "vibium:findAll"
+	case "browser_evaluate":
+		return "vibium:page.eval"
+	case "browser_screenshot":
+		return "vibium:page.screenshot"
+	case "browser_pdf":
+		return "vibium:page.pdf"
+	case "browser_a11y_tree":
+		return "vibium:page.a11yTree"
+
+	// Waiting
+	case "browser_wait":
+		return "vibium:page.waitFor"
+	case "browser_wait_for_url":
+		return "vibium:page.waitForURL"
+	case "browser_wait_for_load":
+		return "vibium:page.waitForLoad"
+	case "browser_wait_for_text":
+		return "vibium:page.wait"
+	case "browser_wait_for_fn":
+		return "vibium:page.waitForFunction"
+	case "browser_sleep":
+		return "vibium:page.wait"
+
+	// Tabs/pages
+	case "browser_new_tab":
+		return "vibium:browser.newPage"
+	case "browser_list_tabs":
+		return "vibium:browser.pages"
+	case "browser_switch_tab":
+		return "vibium:page.activate"
+	case "browser_close_tab":
+		return "vibium:page.close"
+
+	// Viewport/window
+	case "browser_set_viewport":
+		return "vibium:page.setViewport"
+	case "browser_get_viewport":
+		return "vibium:page.viewport"
+	case "browser_set_window":
+		return "vibium:page.setWindow"
+	case "browser_get_window":
+		return "vibium:page.window"
+
+	// Cookies/storage
+	case "browser_get_cookies":
+		return "vibium:context.cookies"
+	case "browser_set_cookie":
+		return "vibium:context.setCookies"
+	case "browser_delete_cookies":
+		return "vibium:context.clearCookies"
+	case "browser_storage_state":
+		return "vibium:context.storageState"
+	case "browser_restore_storage":
+		return "vibium:context.setCookies"
+
+	// Dialog
+	case "browser_dialog_accept":
+		return "vibium:dialog.accept"
+	case "browser_dialog_dismiss":
+		return "vibium:dialog.dismiss"
+
+	// Media/content
+	case "browser_emulate_media":
+		return "vibium:page.emulateMedia"
+	case "browser_set_geolocation":
+		return "vibium:page.setGeolocation"
+	case "browser_set_content":
+		return "vibium:page.setContent"
+
+	// Frames
+	case "browser_frames":
+		return "vibium:page.frames"
+	case "browser_frame":
+		return "vibium:page.frame"
+
+	// Upload/download
+	case "browser_upload":
+		return "vibium:el.setFiles"
+	case "browser_download_set_dir":
+		return "vibium:download.saveAs"
+
+	// Browser lifecycle
+	case "browser_start":
+		return "vibium:browser.newPage"
+	case "browser_stop":
+		return "vibium:browser.stop"
+
+	// Map/highlight (vibium-specific)
+	case "browser_map":
+		return "vibium:page.eval"
+	case "browser_diff_map":
+		return "vibium:page.eval"
+	case "browser_highlight":
+		return "vibium:page.eval"
+
+	// Clock
+	case "page_clock_install":
+		return "vibium:clock.install"
+	case "page_clock_fast_forward":
+		return "vibium:clock.fastForward"
+	case "page_clock_run_for":
+		return "vibium:clock.runFor"
+	case "page_clock_pause_at":
+		return "vibium:clock.pauseAt"
+	case "page_clock_resume":
+		return "vibium:clock.resume"
+	case "page_clock_set_fixed_time":
+		return "vibium:clock.setFixedTime"
+	case "page_clock_set_system_time":
+		return "vibium:clock.setSystemTime"
+	case "page_clock_set_timezone":
+		return "vibium:clock.setTimezone"
+
+	default:
+		return name
+	}
+}
+
+// captureRecordingScreenshot takes a screenshot via the BiDi client and
+// adds it to the active recorder. Runs synchronously inside Call() —
+// no background goroutine, no WebSocket race.
+// actionEnd is used as the screencast-frame timestamp so the screenshot aligns
+// with the action's endTime in the recording timeline (matching the proxy path).
+func (h *Handlers) captureRecordingScreenshot(actionEnd time.Time) {
+	if h.client == nil {
+		return
+	}
+	opts := h.recorder.Options()
+	if !opts.Screenshots {
+		return
+	}
+
+	// Get the current browsing context
+	tree, err := h.client.GetTree()
+	if err != nil || len(tree.Contexts) == 0 {
+		return
+	}
+	context := tree.Contexts[0].Context
+
+	// Build screenshot params with format/quality
+	params := map[string]interface{}{
+		"context": context,
+	}
+	if opts.Format == "jpeg" {
+		f := map[string]interface{}{"type": "image/jpeg"}
+		if opts.Quality > 0 {
+			f["quality"] = opts.Quality
+		}
+		params["format"] = f
+	}
+
+	msg, err := h.client.SendCommand("browsingContext.captureScreenshot", params)
+	if err != nil || msg == nil {
+		return
+	}
+
+	var ssResult struct {
+		Data string `json:"data"`
+	}
+	if err := json.Unmarshal(msg.Result, &ssResult); err != nil || ssResult.Data == "" {
+		return
+	}
+
+	imgData, err := base64.StdEncoding.DecodeString(ssResult.Data)
+	if err != nil {
+		return
+	}
+
+	w, ht := proxy.ImageDimensions(imgData)
+	h.recorder.AddScreenshot(imgData, context, w, ht, actionEnd)
 }
 
 // Close cleans up any active browser sessions.
@@ -397,7 +644,7 @@ func (h *Handlers) browserNavigate(args map[string]interface{}) (*ToolsCallResul
 		return nil, fmt.Errorf("url is required")
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -426,7 +673,7 @@ func (h *Handlers) browserClick(args map[string]interface{}) (*ToolsCallResult, 
 	}
 	selector = h.resolveSelector(selector)
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -460,7 +707,7 @@ func (h *Handlers) browserType(args map[string]interface{}) (*ToolsCallResult, e
 		return nil, fmt.Errorf("text is required")
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -522,7 +769,7 @@ func (h *Handlers) browserScreenshot(args map[string]interface{}) (*ToolsCallRes
 		}
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -942,7 +1189,7 @@ func (h *Handlers) browserNewTab(args map[string]interface{}) (*ToolsCallResult,
 
 	url, _ := args["url"].(string)
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	if _, err := proxy.NewTab(s, url); err != nil {
 		return nil, fmt.Errorf("failed to create tab: %w", err)
 	}
@@ -966,7 +1213,7 @@ func (h *Handlers) browserListTabs(args map[string]interface{}) (*ToolsCallResul
 		return nil, err
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	tabs, err := proxy.ListTabs(s)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tabs: %w", err)
@@ -994,7 +1241,7 @@ func (h *Handlers) browserSwitchTab(args map[string]interface{}) (*ToolsCallResu
 		return nil, err
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	tabs, err := proxy.ListTabs(s)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tabs: %w", err)
@@ -1042,7 +1289,7 @@ func (h *Handlers) browserCloseTab(args map[string]interface{}) (*ToolsCallResul
 		return nil, err
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	tabs, err := proxy.ListTabs(s)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tabs: %w", err)
@@ -1084,7 +1331,7 @@ func (h *Handlers) browserA11yTree(args map[string]interface{}) (*ToolsCallResul
 		interestingOnly = !val
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1116,7 +1363,7 @@ func (h *Handlers) browserHover(args map[string]interface{}) (*ToolsCallResult, 
 	}
 	selector = h.resolveSelector(selector)
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1150,7 +1397,7 @@ func (h *Handlers) browserSelect(args map[string]interface{}) (*ToolsCallResult,
 		return nil, fmt.Errorf("value is required")
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1183,7 +1430,7 @@ func (h *Handlers) browserScroll(args map[string]interface{}) (*ToolsCallResult,
 		amount = int(a)
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1242,7 +1489,7 @@ func (h *Handlers) browserKeys(args map[string]interface{}) (*ToolsCallResult, e
 		return nil, fmt.Errorf("keys is required")
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1265,7 +1512,7 @@ func (h *Handlers) browserGetHTML(args map[string]interface{}) (*ToolsCallResult
 		return nil, err
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1379,7 +1626,7 @@ func (h *Handlers) browserWait(args map[string]interface{}) (*ToolsCallResult, e
 		state = s
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1424,7 +1671,7 @@ func (h *Handlers) browserGetText(args map[string]interface{}) (*ToolsCallResult
 		return nil, err
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1455,7 +1702,7 @@ func (h *Handlers) browserGetURL(args map[string]interface{}) (*ToolsCallResult,
 		return nil, err
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1479,7 +1726,7 @@ func (h *Handlers) browserGetTitle(args map[string]interface{}) (*ToolsCallResul
 		return nil, err
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1503,7 +1750,7 @@ func (h *Handlers) pageClockInstall(args map[string]interface{}) (*ToolsCallResu
 		return nil, err
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1543,7 +1790,7 @@ func (h *Handlers) pageClockFastForward(args map[string]interface{}) (*ToolsCall
 		return nil, fmt.Errorf("ticks is required")
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1569,7 +1816,7 @@ func (h *Handlers) pageClockRunFor(args map[string]interface{}) (*ToolsCallResul
 		return nil, fmt.Errorf("ticks is required")
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1595,7 +1842,7 @@ func (h *Handlers) pageClockPauseAt(args map[string]interface{}) (*ToolsCallResu
 		return nil, fmt.Errorf("time is required")
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1616,7 +1863,7 @@ func (h *Handlers) pageClockResume(args map[string]interface{}) (*ToolsCallResul
 		return nil, err
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1641,7 +1888,7 @@ func (h *Handlers) pageClockSetFixedTime(args map[string]interface{}) (*ToolsCal
 		return nil, fmt.Errorf("time is required")
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1667,7 +1914,7 @@ func (h *Handlers) pageClockSetSystemTime(args map[string]interface{}) (*ToolsCa
 		return nil, fmt.Errorf("time is required")
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1688,7 +1935,7 @@ func (h *Handlers) pageClockSetTimezone(args map[string]interface{}) (*ToolsCall
 		return nil, err
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1754,7 +2001,7 @@ func (h *Handlers) browserFill(args map[string]interface{}) (*ToolsCallResult, e
 		return nil, fmt.Errorf("text is required")
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1782,7 +2029,7 @@ func (h *Handlers) browserPress(args map[string]interface{}) (*ToolsCallResult, 
 		return nil, fmt.Errorf("key is required")
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1814,7 +2061,7 @@ func (h *Handlers) browserBack(args map[string]interface{}) (*ToolsCallResult, e
 		return nil, err
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1837,7 +2084,7 @@ func (h *Handlers) browserForward(args map[string]interface{}) (*ToolsCallResult
 		return nil, err
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1860,7 +2107,7 @@ func (h *Handlers) browserReload(args map[string]interface{}) (*ToolsCallResult,
 		return nil, err
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1889,7 +2136,7 @@ func (h *Handlers) browserGetValue(args map[string]interface{}) (*ToolsCallResul
 	}
 	selector = h.resolveSelector(selector)
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1924,7 +2171,7 @@ func (h *Handlers) browserGetAttribute(args map[string]interface{}) (*ToolsCallR
 		return nil, fmt.Errorf("attribute is required")
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1954,7 +2201,7 @@ func (h *Handlers) browserIsVisible(args map[string]interface{}) (*ToolsCallResu
 	}
 	selector = h.resolveSelector(selector)
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -1990,7 +2237,7 @@ func (h *Handlers) browserCheck(args map[string]interface{}) (*ToolsCallResult, 
 	}
 	selector = h.resolveSelector(selector)
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -2025,7 +2272,7 @@ func (h *Handlers) browserUncheck(args map[string]interface{}) (*ToolsCallResult
 	}
 	selector = h.resolveSelector(selector)
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -2060,7 +2307,7 @@ func (h *Handlers) browserScrollIntoView(args map[string]interface{}) (*ToolsCal
 	}
 	selector = h.resolveSelector(selector)
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -2093,7 +2340,7 @@ func (h *Handlers) browserWaitForURL(args map[string]interface{}) (*ToolsCallRes
 		timeout = time.Duration(t) * time.Millisecond
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -2122,7 +2369,7 @@ func (h *Handlers) browserWaitForLoad(args map[string]interface{}) (*ToolsCallRe
 		timeout = time.Duration(t) * time.Millisecond
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -2379,7 +2626,7 @@ func (h *Handlers) browserPDF(args map[string]interface{}) (*ToolsCallResult, er
 		return nil, err
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -2466,7 +2713,7 @@ func (h *Handlers) browserDblClick(args map[string]interface{}) (*ToolsCallResul
 	}
 	selector = h.resolveSelector(selector)
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -2495,7 +2742,7 @@ func (h *Handlers) browserFocus(args map[string]interface{}) (*ToolsCallResult, 
 	}
 	selector = h.resolveSelector(selector)
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -2524,7 +2771,7 @@ func (h *Handlers) browserCount(args map[string]interface{}) (*ToolsCallResult, 
 	}
 	selector = h.resolveSelector(selector)
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -2554,7 +2801,7 @@ func (h *Handlers) browserIsEnabled(args map[string]interface{}) (*ToolsCallResu
 	}
 	selector = h.resolveSelector(selector)
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -2584,7 +2831,7 @@ func (h *Handlers) browserIsChecked(args map[string]interface{}) (*ToolsCallResu
 	}
 	selector = h.resolveSelector(selector)
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -2618,7 +2865,7 @@ func (h *Handlers) browserWaitForText(args map[string]interface{}) (*ToolsCallRe
 		timeout = time.Duration(t) * time.Millisecond
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -2651,7 +2898,7 @@ func (h *Handlers) browserWaitForFn(args map[string]interface{}) (*ToolsCallResu
 		timeout = time.Duration(t) * time.Millisecond
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -2677,7 +2924,7 @@ func (h *Handlers) browserDialogAccept(args map[string]interface{}) (*ToolsCallR
 
 	text, _ := args["text"].(string)
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -2705,7 +2952,7 @@ func (h *Handlers) browserDialogDismiss(args map[string]interface{}) (*ToolsCall
 		return nil, err
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -2728,7 +2975,7 @@ func (h *Handlers) browserGetCookies(args map[string]interface{}) (*ToolsCallRes
 		return nil, err
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -2779,7 +3026,7 @@ func (h *Handlers) browserSetCookie(args map[string]interface{}) (*ToolsCallResu
 	domain, _ := args["domain"].(string)
 	path, _ := args["path"].(string)
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -2804,7 +3051,7 @@ func (h *Handlers) browserDeleteCookies(args map[string]interface{}) (*ToolsCall
 
 	name, _ := args["name"].(string)
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -2841,7 +3088,7 @@ func (h *Handlers) browserMouseMove(args map[string]interface{}) (*ToolsCallResu
 		return nil, fmt.Errorf("y is required")
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -2869,7 +3116,7 @@ func (h *Handlers) browserMouseDown(args map[string]interface{}) (*ToolsCallResu
 		button = int(b)
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -2897,7 +3144,7 @@ func (h *Handlers) browserMouseUp(args map[string]interface{}) (*ToolsCallResult
 		button = int(b)
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -2925,7 +3172,7 @@ func (h *Handlers) browserMouseClick(args map[string]interface{}) (*ToolsCallRes
 		button = int(b)
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -2981,7 +3228,7 @@ func (h *Handlers) browserDrag(args map[string]interface{}) (*ToolsCallResult, e
 	}
 	target = h.resolveSelector(target)
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -3018,7 +3265,7 @@ func (h *Handlers) browserSetViewport(args map[string]interface{}) (*ToolsCallRe
 		dpr = d
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -3046,7 +3293,7 @@ func (h *Handlers) browserGetViewport(args map[string]interface{}) (*ToolsCallRe
 		return nil, err
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -3070,7 +3317,7 @@ func (h *Handlers) browserGetWindow(args map[string]interface{}) (*ToolsCallResu
 		return nil, err
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	win, err := proxy.GetWindow(s)
 	if err != nil {
 		return nil, err
@@ -3163,7 +3410,7 @@ func (h *Handlers) browserEmulateMedia(args map[string]interface{}) (*ToolsCallR
 		return nil, fmt.Errorf("at least one media feature override is required")
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -3205,7 +3452,7 @@ func (h *Handlers) browserSetGeolocation(args map[string]interface{}) (*ToolsCal
 		accuracy = a
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -3234,7 +3481,7 @@ func (h *Handlers) browserSetContent(args map[string]interface{}) (*ToolsCallRes
 		return nil, fmt.Errorf("html is required")
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -3257,7 +3504,7 @@ func (h *Handlers) browserFrames(args map[string]interface{}) (*ToolsCallResult,
 		return nil, err
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -3297,7 +3544,7 @@ func (h *Handlers) browserFrame(args map[string]interface{}) (*ToolsCallResult, 
 		return nil, fmt.Errorf("nameOrUrl is required")
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -3353,7 +3600,7 @@ func (h *Handlers) browserUpload(args map[string]interface{}) (*ToolsCallResult,
 		return nil, fmt.Errorf("at least one file path is required")
 	}
 
-	s := proxy.NewMCPSession(h.client)
+	s := h.newSession()
 	ctx, err := s.GetContextID()
 	if err != nil {
 		return nil, err
@@ -3384,48 +3631,58 @@ func (h *Handlers) browserRecordStart(args map[string]interface{}) (*ToolsCallRe
 	if name == "" {
 		name = "record"
 	}
-	screenshots, _ := args["screenshots"].(bool)
-	snapshots, _ := args["snapshots"].(bool)
 
-	h.recorder = &recorder{
-		name:        name,
-		screenshots: screenshots,
-		snapshots:   snapshots,
-		startTime:   time.Now(),
+	opts := proxy.RecordingStartOptions{
+		Name: name,
+	}
+	if ss, ok := args["screenshots"].(bool); ok {
+		opts.Screenshots = ss
+	}
+	if sn, ok := args["snapshots"].(bool); ok {
+		opts.Snapshots = sn
+	}
+	if src, ok := args["sources"].(bool); ok {
+		opts.Sources = src
+	}
+	if title, ok := args["title"].(string); ok {
+		opts.Title = title
+	}
+	if b, ok := args["bidi"].(bool); ok {
+		opts.Bidi = b
+	}
+	opts.Format = "jpeg"
+	if f, ok := args["format"].(string); ok && (f == "png" || f == "jpeg") {
+		opts.Format = f
+	}
+	opts.Quality = 0.5
+	if q, ok := args["quality"].(float64); ok && q >= 0 && q <= 1 {
+		opts.Quality = q
 	}
 
-	// Start screenshot capture loop in background
-	if screenshots {
-		h.recorder.done = make(chan struct{})
-		go func() {
-			ticker := time.NewTicker(500 * time.Millisecond)
-			defer ticker.Stop()
-			for {
-				select {
-				case <-h.recorder.done:
-					return
-				case <-ticker.C:
-					data, err := h.client.CaptureScreenshot("")
-					if err == nil {
-						h.recorder.addScreenshot(data)
-					}
-				}
-			}
-		}()
-	}
+	h.recorder = proxy.NewRecorder()
+	h.recorder.Start(opts)
 
-	// Capture snapshot if enabled
-	if snapshots {
-		html, err := h.client.Evaluate("", "document.documentElement.outerHTML")
-		if err == nil && html != nil {
-			h.recorder.addSnapshot(fmt.Sprintf("%v", html))
-		}
-	}
+	// Subscribe to events and feed them to the recorder
+	h.client.SendCommand("session.subscribe", map[string]interface{}{
+		"events": []string{
+			"network.beforeRequestSent",
+			"network.responseCompleted",
+			"network.fetchError",
+			"log.entryAdded",
+			"browsingContext.userPromptOpened",
+			"browsingContext.downloadWillBegin",
+			"browsingContext.load",
+			"browsingContext.fragmentNavigated",
+		},
+	})
+	h.client.SetEventHandler(func(msg string) {
+		h.recorder.RecordBidiEvent(msg)
+	})
 
 	return &ToolsCallResult{
 		Content: []Content{{
 			Type: "text",
-			Text: fmt.Sprintf("Recording %q started (screenshots: %v, snapshots: %v)", name, screenshots, snapshots),
+			Text: fmt.Sprintf("Recording %q started (screenshots: %v, snapshots: %v)", name, opts.Screenshots, opts.Snapshots),
 		}},
 	}, nil
 }
@@ -3436,26 +3693,23 @@ func (h *Handlers) browserRecordStop(args map[string]interface{}) (*ToolsCallRes
 		return nil, fmt.Errorf("no recording in progress")
 	}
 
+	// Stop forwarding events to the recorder
+	if h.client != nil {
+		h.client.SetEventHandler(nil)
+	}
+
 	path, _ := args["path"].(string)
 	if path == "" {
 		path = "record.zip"
 	}
 
-	// Capture final snapshot if enabled
-	if h.recorder.snapshots && h.client != nil {
-		html, err := h.client.Evaluate("", "document.documentElement.outerHTML")
-		if err == nil && html != nil {
-			h.recorder.addSnapshot(fmt.Sprintf("%v", html))
-		}
+	zipData, err := h.recorder.Stop()
+	if err != nil {
+		h.recorder = nil
+		return nil, fmt.Errorf("failed to stop recording: %w", err)
 	}
 
-	// Stop screenshot loop
-	if h.recorder.done != nil {
-		close(h.recorder.done)
-	}
-
-	// Write ZIP
-	if err := h.recorder.writeZip(path); err != nil {
+	if err := proxy.WriteRecordToFile(zipData, path); err != nil {
 		h.recorder = nil
 		return nil, fmt.Errorf("failed to write recording: %w", err)
 	}
@@ -3466,6 +3720,91 @@ func (h *Handlers) browserRecordStop(args map[string]interface{}) (*ToolsCallRes
 		Content: []Content{{
 			Type: "text",
 			Text: fmt.Sprintf("Recording saved to %s", path),
+		}},
+	}, nil
+}
+
+// browserRecordStartGroup starts a named group in the recording.
+func (h *Handlers) browserRecordStartGroup(args map[string]interface{}) (*ToolsCallResult, error) {
+	if h.recorder == nil {
+		return nil, fmt.Errorf("no recording in progress")
+	}
+
+	name, _ := args["name"].(string)
+	if name == "" {
+		return nil, fmt.Errorf("name is required")
+	}
+
+	h.recorder.StartGroup(name)
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: fmt.Sprintf("Started group %q", name),
+		}},
+	}, nil
+}
+
+// browserRecordStopGroup ends the current group in the recording.
+func (h *Handlers) browserRecordStopGroup(args map[string]interface{}) (*ToolsCallResult, error) {
+	if h.recorder == nil {
+		return nil, fmt.Errorf("no recording in progress")
+	}
+
+	h.recorder.StopGroup()
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: "Stopped group",
+		}},
+	}, nil
+}
+
+// browserRecordStartChunk starts a new chunk within the current recording.
+func (h *Handlers) browserRecordStartChunk(args map[string]interface{}) (*ToolsCallResult, error) {
+	if h.recorder == nil {
+		return nil, fmt.Errorf("no recording in progress")
+	}
+
+	name, _ := args["name"].(string)
+	title, _ := args["title"].(string)
+
+	h.recorder.StartChunk(name, title)
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: "Started new recording chunk",
+		}},
+	}, nil
+}
+
+// browserRecordStopChunk packages the current chunk into a zip file.
+// Recording remains active for additional chunks.
+func (h *Handlers) browserRecordStopChunk(args map[string]interface{}) (*ToolsCallResult, error) {
+	if h.recorder == nil {
+		return nil, fmt.Errorf("no recording in progress")
+	}
+
+	path, _ := args["path"].(string)
+	if path == "" {
+		path = "chunk.zip"
+	}
+
+	zipData, err := h.recorder.StopChunk()
+	if err != nil {
+		return nil, fmt.Errorf("failed to stop chunk: %w", err)
+	}
+
+	if err := proxy.WriteRecordToFile(zipData, path); err != nil {
+		return nil, fmt.Errorf("failed to write chunk: %w", err)
+	}
+
+	return &ToolsCallResult{
+		Content: []Content{{
+			Type: "text",
+			Text: fmt.Sprintf("Chunk saved to %s", path),
 		}},
 	}, nil
 }
