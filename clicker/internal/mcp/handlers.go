@@ -30,7 +30,7 @@ type Handlers struct {
 	recorder       *proxy.Recorder
 	downloadDir    string
 	lastElementBox *proxy.BoxInfo // stashed by MCPSession.SetLastElementBox via callback
-	activeContext  string         // last tab context switched to or created
+	activeContext  string         // last page context switched to or created
 }
 
 // NewHandlers creates a new Handlers instance.
@@ -130,14 +130,14 @@ func (h *Handlers) dispatch(name string, args map[string]interface{}) (*ToolsCal
 		return h.browserScroll(args)
 	case "browser_keys":
 		return h.browserKeys(args)
-	case "browser_new_tab":
-		return h.browserNewTab(args)
-	case "browser_list_tabs":
-		return h.browserListTabs(args)
-	case "browser_switch_tab":
-		return h.browserSwitchTab(args)
-	case "browser_close_tab":
-		return h.browserCloseTab(args)
+	case "browser_new_page":
+		return h.browserNewPage(args)
+	case "browser_list_pages":
+		return h.browserListPages(args)
+	case "browser_switch_page":
+		return h.browserSwitchPage(args)
+	case "browser_close_page":
+		return h.browserClosePage(args)
 	case "browser_a11y_tree":
 		return h.browserA11yTree(args)
 	case "page_clock_install":
@@ -396,14 +396,14 @@ func mcpToolToMethod(name string) string {
 	case "browser_sleep":
 		return "vibium:page.wait"
 
-	// Tabs/pages
-	case "browser_new_tab":
+	// Pages
+	case "browser_new_page":
 		return "vibium:browser.newPage"
-	case "browser_list_tabs":
+	case "browser_list_pages":
 		return "vibium:browser.pages"
-	case "browser_switch_tab":
+	case "browser_switch_page":
 		return "vibium:page.activate"
-	case "browser_close_tab":
+	case "browser_close_page":
 		return "vibium:page.close"
 
 	// Viewport/window
@@ -1183,8 +1183,8 @@ func (h *Handlers) browserQuit(args map[string]interface{}) (*ToolsCallResult, e
 	}, nil
 }
 
-// browserNewTab creates a new browser tab.
-func (h *Handlers) browserNewTab(args map[string]interface{}) (*ToolsCallResult, error) {
+// browserNewPage creates a new browser page.
+func (h *Handlers) browserNewPage(args map[string]interface{}) (*ToolsCallResult, error) {
 	if err := h.ensureBrowser(); err != nil {
 		return nil, err
 	}
@@ -1192,19 +1192,19 @@ func (h *Handlers) browserNewTab(args map[string]interface{}) (*ToolsCallResult,
 	url, _ := args["url"].(string)
 
 	s := h.newSession()
-	contextID, err := proxy.NewTab(s, url)
+	contextID, err := proxy.NewPage(s, url)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create tab: %w", err)
+		return nil, fmt.Errorf("failed to create page: %w", err)
 	}
-	// Activate and track the new tab so subsequent commands target it
-	if err := proxy.SwitchTab(s, contextID); err != nil {
-		return nil, fmt.Errorf("failed to activate new tab: %w", err)
+	// Activate and track the new page so subsequent commands target it
+	if err := proxy.SwitchPage(s, contextID); err != nil {
+		return nil, fmt.Errorf("failed to activate new page: %w", err)
 	}
 	h.activeContext = contextID
 
-	msg := "New tab opened"
+	msg := "New page opened"
 	if url != "" {
-		msg = fmt.Sprintf("New tab opened and navigated to %s", url)
+		msg = fmt.Sprintf("New page opened and navigated to %s", url)
 	}
 
 	return &ToolsCallResult{
@@ -1215,24 +1215,24 @@ func (h *Handlers) browserNewTab(args map[string]interface{}) (*ToolsCallResult,
 	}, nil
 }
 
-// browserListTabs lists all open browser tabs.
-func (h *Handlers) browserListTabs(args map[string]interface{}) (*ToolsCallResult, error) {
+// browserListPages lists all open browser pages.
+func (h *Handlers) browserListPages(args map[string]interface{}) (*ToolsCallResult, error) {
 	if err := h.ensureBrowser(); err != nil {
 		return nil, err
 	}
 
 	s := h.newSession()
-	tabs, err := proxy.ListTabs(s)
+	pages, err := proxy.ListPages(s)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get tabs: %w", err)
+		return nil, fmt.Errorf("failed to get pages: %w", err)
 	}
 
 	var text string
-	for i, tab := range tabs {
-		text += fmt.Sprintf("[%d] %s\n", i, tab.URL)
+	for i, page := range pages {
+		text += fmt.Sprintf("[%d] %s\n", i, page.URL)
 	}
 	if text == "" {
-		text = "No tabs open"
+		text = "No pages open"
 	}
 
 	return &ToolsCallResult{
@@ -1243,16 +1243,16 @@ func (h *Handlers) browserListTabs(args map[string]interface{}) (*ToolsCallResul
 	}, nil
 }
 
-// browserSwitchTab switches to a tab by index or URL substring.
-func (h *Handlers) browserSwitchTab(args map[string]interface{}) (*ToolsCallResult, error) {
+// browserSwitchPage switches to a page by index or URL substring.
+func (h *Handlers) browserSwitchPage(args map[string]interface{}) (*ToolsCallResult, error) {
 	if err := h.ensureBrowser(); err != nil {
 		return nil, err
 	}
 
 	s := h.newSession()
-	tabs, err := proxy.ListTabs(s)
+	pages, err := proxy.ListPages(s)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get tabs: %w", err)
+		return nil, fmt.Errorf("failed to get pages: %w", err)
 	}
 
 	var contextID string
@@ -1260,26 +1260,26 @@ func (h *Handlers) browserSwitchTab(args map[string]interface{}) (*ToolsCallResu
 	// Try index first
 	if idx, ok := args["index"].(float64); ok {
 		i := int(idx)
-		if i < 0 || i >= len(tabs) {
-			return nil, fmt.Errorf("tab index %d out of range (0-%d)", i, len(tabs)-1)
+		if i < 0 || i >= len(pages) {
+			return nil, fmt.Errorf("page index %d out of range (0-%d)", i, len(pages)-1)
 		}
-		contextID = tabs[i].Context
+		contextID = pages[i].Context
 	} else if url, ok := args["url"].(string); ok && url != "" {
 		// Search by URL substring
-		for _, tab := range tabs {
-			if strings.Contains(tab.URL, url) {
-				contextID = tab.Context
+		for _, page := range pages {
+			if strings.Contains(page.URL, url) {
+				contextID = page.Context
 				break
 			}
 		}
 		if contextID == "" {
-			return nil, fmt.Errorf("no tab matching URL %q", url)
+			return nil, fmt.Errorf("no page matching URL %q", url)
 		}
 	} else {
 		return nil, fmt.Errorf("index or url is required")
 	}
 
-	if err := proxy.SwitchTab(s, contextID); err != nil {
+	if err := proxy.SwitchPage(s, contextID); err != nil {
 		return nil, err
 	}
 	h.activeContext = contextID
@@ -1287,49 +1287,49 @@ func (h *Handlers) browserSwitchTab(args map[string]interface{}) (*ToolsCallResu
 	return &ToolsCallResult{
 		Content: []Content{{
 			Type: "text",
-			Text: fmt.Sprintf("Switched to tab: %s", contextID),
+			Text: fmt.Sprintf("Switched to page: %s", contextID),
 		}},
 	}, nil
 }
 
-// browserCloseTab closes a tab by index (default: current tab).
-func (h *Handlers) browserCloseTab(args map[string]interface{}) (*ToolsCallResult, error) {
+// browserClosePage closes a page by index (default: current page).
+func (h *Handlers) browserClosePage(args map[string]interface{}) (*ToolsCallResult, error) {
 	if err := h.ensureBrowser(); err != nil {
 		return nil, err
 	}
 
 	s := h.newSession()
-	tabs, err := proxy.ListTabs(s)
+	pages, err := proxy.ListPages(s)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get tabs: %w", err)
+		return nil, fmt.Errorf("failed to get pages: %w", err)
 	}
 
-	if len(tabs) == 0 {
-		return nil, fmt.Errorf("no tabs open")
+	if len(pages) == 0 {
+		return nil, fmt.Errorf("no pages open")
 	}
 
 	idx := -1
 	if i, ok := args["index"].(float64); ok {
 		idx = int(i)
 	} else if h.activeContext != "" {
-		// No index given — default to the active tab
-		for i, tab := range tabs {
-			if tab.Context == h.activeContext {
+		// No index given — default to the active page
+		for i, page := range pages {
+			if page.Context == h.activeContext {
 				idx = i
 				break
 			}
 		}
 	}
 	if idx < 0 {
-		idx = 0 // fall back to first tab
+		idx = 0 // fall back to first page
 	}
 
-	if idx < 0 || idx >= len(tabs) {
-		return nil, fmt.Errorf("tab index %d out of range (0-%d)", idx, len(tabs)-1)
+	if idx < 0 || idx >= len(pages) {
+		return nil, fmt.Errorf("page index %d out of range (0-%d)", idx, len(pages)-1)
 	}
 
-	closedContext := tabs[idx].Context
-	if err := proxy.CloseTab(s, closedContext); err != nil {
+	closedContext := pages[idx].Context
+	if err := proxy.ClosePage(s, closedContext); err != nil {
 		return nil, err
 	}
 	if h.activeContext == closedContext {
@@ -1339,7 +1339,7 @@ func (h *Handlers) browserCloseTab(args map[string]interface{}) (*ToolsCallResul
 	return &ToolsCallResult{
 		Content: []Content{{
 			Type: "text",
-			Text: fmt.Sprintf("Closed tab %d", idx),
+			Text: fmt.Sprintf("Closed page %d", idx),
 		}},
 	}, nil
 }

@@ -4,15 +4,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newTabNewCmd() *cobra.Command {
+func newPageNewCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "tab-new [url]",
-		Short: "Open a new browser tab",
-		Example: `  vibium tab-new
-  # Open a blank new tab
+		Use:   "page-new [url]",
+		Short: "Open a new browser page",
+		Example: `  vibium page-new
+  # Open a blank new page
 
-  vibium tab-new https://example.com
-  # Open a new tab and navigate to URL`,
+  vibium page-new https://example.com
+  # Open a new page and navigate to URL`,
 		Args: cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			toolArgs := map[string]interface{}{}
@@ -20,7 +20,7 @@ func newTabNewCmd() *cobra.Command {
 				toolArgs["url"] = args[0]
 			}
 
-			result, err := daemonCall("browser_new_tab", toolArgs)
+			result, err := daemonCall("browser_new_page", toolArgs)
 			if err != nil {
 				printError(err)
 				return

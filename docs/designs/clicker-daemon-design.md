@@ -215,7 +215,7 @@ Every CLI subcommand maps to exactly one MCP tool call. The CLI binary is a thin
 | `clicker title` | `browser_get_title` | `{}` | New |
 | `clicker scroll [selector] [direction]` | `browser_scroll` | `{selector?, direction?}` | New |
 | `clicker wait <selector> [timeout]` | `browser_wait` | `{selector, timeout?}` | New |
-| `clicker tabs` | `browser_list_tabs` | `{}` | New |
+| `clicker pages` | `browser_list_pages` | `{}` | New |
 | `clicker keys <keys>` | `browser_keys` | `{keys}` | New |
 | `clicker quit` | `browser_stop` | `{}` | ✅ Exists |
 
@@ -337,14 +337,14 @@ The daemon architecture makes it trivial to add new tools. These are the tools t
 | `browser_wait` | Wait for element to appear | `{selector: string, timeout?: number, state?: "visible"\|"attached"\|"hidden"}` | |
 | `browser_find_all` | Find all matching elements | `{selector: string, limit?: number}` | |
 
-### 5.3 Tab Management
+### 5.3 Page Management
 
 | Tool | Description | Arguments | Status |
 |------|-------------|-----------|--------|
-| `browser_new_tab` | Open new tab, optionally navigate | `{url?: string}` | |
-| `browser_list_tabs` | List open tabs with URLs | `{}` | |
-| `browser_switch_tab` | Switch to tab by index or URL match | `{index?: number, url?: string}` | |
-| `browser_close_tab` | Close a tab | `{index?: number}` | |
+| `browser_new_page` | Open new page, optionally navigate | `{url?: string}` | |
+| `browser_list_pages` | List open pages with URLs | `{}` | |
+| `browser_switch_page` | Switch to page by index or URL match | `{index?: number, url?: string}` | |
+| `browser_close_page` | Close a page | `{index?: number}` | |
 
 ## 6. CLI as Agent Skill Interface
 
@@ -474,11 +474,11 @@ clicker hover <selector>            # Hover over element
 clicker wait <selector>             # Wait for element (default 5s timeout)
 clicker wait <selector> --timeout 10000 --state visible
 
-## Tabs
-clicker tabs                        # List open tabs
-clicker tab-new [url]               # Open new tab
-clicker tab-switch <index>          # Switch to tab
-clicker tab-close [index]           # Close tab
+## Pages
+clicker pages                        # List open pages
+clicker page-new [url]               # Open new page
+clicker page-switch <index>          # Switch to page
+clicker page-close [index]           # Close page
 
 ## Session
 clicker quit                        # Close browser (next command opens fresh one)
@@ -655,7 +655,7 @@ The existing MCP tool handler functions (currently called from `clicker mcp`) ne
 9. Add `browser_scroll`, `browser_hover`, `browser_select`, `browser_keys`
 10. Add `browser_wait`
 11. Add `browser_find_all`
-12. Add `browser_new_tab`, `browser_list_tabs`, `browser_switch_tab`, `browser_close_tab`
+12. Add `browser_new_page`, `browser_list_pages`, `browser_switch_page`, `browser_close_page`
 13. Add corresponding CLI subcommands for each new tool
 14. Implement `clicker skill` — auto-generate skill file from registered commands
 

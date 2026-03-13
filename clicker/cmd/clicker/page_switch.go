@@ -6,15 +6,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newTabSwitchCmd() *cobra.Command {
+func newPageSwitchCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "tab-switch [index or url]",
-		Short: "Switch to a browser tab by index or URL substring",
-		Example: `  vibium tab-switch 1
-  # Switch to tab at index 1
+		Use:   "page-switch [index or url]",
+		Short: "Switch to a browser page by index or URL substring",
+		Example: `  vibium page-switch 1
+  # Switch to page at index 1
 
-  vibium tab-switch google.com
-  # Switch to tab containing "google.com" in URL`,
+  vibium page-switch google.com
+  # Switch to page containing "google.com" in URL`,
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			toolArgs := map[string]interface{}{}
@@ -26,7 +26,7 @@ func newTabSwitchCmd() *cobra.Command {
 				toolArgs["url"] = args[0]
 			}
 
-			result, err := daemonCall("browser_switch_tab", toolArgs)
+			result, err := daemonCall("browser_switch_page", toolArgs)
 			if err != nil {
 				printError(err)
 				return

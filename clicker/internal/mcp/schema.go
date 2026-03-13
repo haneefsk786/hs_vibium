@@ -227,22 +227,22 @@ func GetToolSchemas() []Tool {
 			},
 		},
 		{
-			Name:        "browser_new_tab",
-			Description: "Open a new browser tab, optionally navigating to a URL",
+			Name:        "browser_new_page",
+			Description: "Open a new browser page, optionally navigating to a URL",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
 					"url": map[string]interface{}{
 						"type":        "string",
-						"description": "URL to navigate to in the new tab (optional)",
+						"description": "URL to navigate to in the new page (optional)",
 					},
 				},
 				"additionalProperties": false,
 			},
 		},
 		{
-			Name:        "browser_list_tabs",
-			Description: "List all open browser tabs with their URLs",
+			Name:        "browser_list_pages",
+			Description: "List all open browser pages with their URLs",
 			InputSchema: map[string]interface{}{
 				"type":                 "object",
 				"properties":           map[string]interface{}{},
@@ -250,14 +250,14 @@ func GetToolSchemas() []Tool {
 			},
 		},
 		{
-			Name:        "browser_switch_tab",
-			Description: "Switch to a browser tab by index or URL substring",
+			Name:        "browser_switch_page",
+			Description: "Switch to a browser page by index or URL substring",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
 					"index": map[string]interface{}{
 						"type":        "number",
-						"description": "Tab index (0-based) from browser_list_tabs",
+						"description": "Page index (0-based) from browser_list_pages",
 					},
 					"url": map[string]interface{}{
 						"type":        "string",
@@ -268,14 +268,14 @@ func GetToolSchemas() []Tool {
 			},
 		},
 		{
-			Name:        "browser_close_tab",
-			Description: "Close a browser tab by index (default: current tab)",
+			Name:        "browser_close_page",
+			Description: "Close a browser page by index (default: current page)",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
 					"index": map[string]interface{}{
 						"type":        "number",
-						"description": "Tab index to close (default: 0, the current tab)",
+						"description": "Page index to close (default: 0, the current page)",
 						"default":     0,
 					},
 				},

@@ -1,6 +1,6 @@
 ---
 name: vibe-check
-description: Browser automation for AI agents. Use when the user needs to navigate websites, read page content, fill forms, click elements, take screenshots, or manage browser tabs.
+description: Browser automation for AI agents. Use when the user needs to navigate websites, read page content, fill forms, click elements, take screenshots, or manage browser pages.
 ---
 
 # Vibium Browser Automation — CLI Reference
@@ -155,11 +155,11 @@ vibium go https://example.com && vibium map && vibium click @e3 && vibium diff m
 ### Downloads
 - `vibium download set-dir <path>` — set download directory
 
-### Tabs
-- `vibium tabs` — list open tabs
-- `vibium tab-new [url]` — open new tab
-- `vibium tab-switch <index|url>` — switch tab
-- `vibium tab-close [index]` — close tab
+### Pages
+- `vibium pages` — list open pages
+- `vibium page-new [url]` — open new page
+- `vibium page-switch <index|url>` — switch page
+- `vibium page-close [index]` — close page
 
 ### Debug
 - `vibium highlight "<selector>"` — highlight element visually (3 seconds)
@@ -259,11 +259,11 @@ vibium map
 vibium stop
 ```
 
-### Multi-tab workflow
+### Multi-page workflow
 ```sh
-vibium tab-new https://docs.example.com
+vibium page-new https://docs.example.com
 vibium text "h1"
-vibium tab-switch 0
+vibium page-switch 0
 ```
 
 ### Annotated screenshot

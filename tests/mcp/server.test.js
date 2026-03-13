@@ -152,7 +152,7 @@ describe('MCP Server: Protocol', () => {
       'browser_get_text', 'browser_get_url', 'browser_get_title',
       'browser_get_html', 'browser_find_all', 'browser_wait',
       'browser_hover', 'browser_select', 'browser_scroll', 'browser_keys',
-      'browser_new_tab', 'browser_list_tabs', 'browser_switch_tab', 'browser_close_tab',
+      'browser_new_page', 'browser_list_pages', 'browser_switch_page', 'browser_close_page',
       'browser_a11y_tree',
       'page_clock_install', 'page_clock_fast_forward', 'page_clock_run_for',
       'page_clock_pause_at', 'page_clock_resume', 'page_clock_set_fixed_time',
@@ -510,9 +510,9 @@ describe('MCP Server: New Tools', () => {
     );
   });
 
-  test('browser_list_tabs returns tab list', async () => {
+  test('browser_list_pages returns page list', async () => {
     const response = await client.call('tools/call', {
-      name: 'browser_list_tabs',
+      name: 'browser_list_pages',
       arguments: {},
     });
 
@@ -520,30 +520,30 @@ describe('MCP Server: New Tools', () => {
     assert.ok(!response.result.isError, 'Should not be an error');
     assert.ok(
       response.result.content[0].text.includes('[0]'),
-      'Should list at least one tab'
+      'Should list at least one page'
     );
   });
 
-  test('browser_new_tab creates a tab and list shows 2', async () => {
-    const newTabResponse = await client.call('tools/call', {
-      name: 'browser_new_tab',
+  test('browser_new_page creates a page and list shows 2', async () => {
+    const newPageResponse = await client.call('tools/call', {
+      name: 'browser_new_page',
       arguments: {},
     });
 
-    assert.ok(newTabResponse.result, 'Should have result');
-    assert.ok(!newTabResponse.result.isError, 'Should not be an error');
+    assert.ok(newPageResponse.result, 'Should have result');
+    assert.ok(!newPageResponse.result.isError, 'Should not be an error');
 
     const listResponse = await client.call('tools/call', {
-      name: 'browser_list_tabs',
+      name: 'browser_list_pages',
       arguments: {},
     });
 
-    assert.ok(listResponse.result.content[0].text.includes('[1]'), 'Should have 2 tabs');
+    assert.ok(listResponse.result.content[0].text.includes('[1]'), 'Should have 2 pages');
   });
 
-  test('browser_switch_tab switches to tab', async () => {
+  test('browser_switch_page switches to page', async () => {
     const response = await client.call('tools/call', {
-      name: 'browser_switch_tab',
+      name: 'browser_switch_page',
       arguments: { index: 0 },
     });
 
@@ -555,9 +555,9 @@ describe('MCP Server: New Tools', () => {
     );
   });
 
-  test('browser_close_tab closes tab and list shows 1', async () => {
+  test('browser_close_page closes page and list shows 1', async () => {
     const closeResponse = await client.call('tools/call', {
-      name: 'browser_close_tab',
+      name: 'browser_close_page',
       arguments: { index: 1 },
     });
 
@@ -565,11 +565,11 @@ describe('MCP Server: New Tools', () => {
     assert.ok(!closeResponse.result.isError, 'Should not be an error');
 
     const listResponse = await client.call('tools/call', {
-      name: 'browser_list_tabs',
+      name: 'browser_list_pages',
       arguments: {},
     });
 
-    assert.ok(!listResponse.result.content[0].text.includes('[1]'), 'Should have 1 tab');
+    assert.ok(!listResponse.result.content[0].text.includes('[1]'), 'Should have 1 page');
   });
 });
 

@@ -38,10 +38,10 @@ The server provides browser automation tools:
   - browser_select: Select a dropdown option
   - browser_scroll: Scroll the page
   - browser_keys: Press keys
-  - browser_new_tab: Open a new tab
-  - browser_list_tabs: List open tabs
-  - browser_switch_tab: Switch tabs
-  - browser_close_tab: Close a tab`,
+  - browser_new_page: Open a new page
+  - browser_list_pages: List open pages
+  - browser_switch_page: Switch pages
+  - browser_close_page: Close a page`,
 		Example: `  # Run directly (for testing)
   vibium mcp
 

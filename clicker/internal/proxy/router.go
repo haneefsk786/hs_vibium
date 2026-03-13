@@ -697,7 +697,7 @@ func (r *Router) OnClientMessage(client ClientTransport, msg string) {
 }
 
 // getContext retrieves the active browsing context. It checks lastContext first
-// (set by tab-switch / tab-new), falling back to the first context from getTree.
+// (set by page-switch / page-new), falling back to the first context from getTree.
 func (r *Router) getContext(session *BrowserSession) (string, error) {
 	session.mu.Lock()
 	last := session.lastContext

@@ -230,15 +230,15 @@ func (r *Router) handlePageClose(session *BrowserSession, cmd bidiCommand) {
 // Exported standalone lifecycle functions — usable from both proxy and MCP.
 // ---------------------------------------------------------------------------
 
-// TabInfo holds information about a browsing context (tab).
-type TabInfo struct {
+// PageInfo holds information about a browsing context (page).
+type PageInfo struct {
 	Context     string `json:"context"`
 	URL         string `json:"url"`
 	UserContext string `json:"userContext"`
 }
 
-// NewTab creates a new tab and returns its context ID.
-func NewTab(s Session, url string) (string, error) {
+// NewPage creates a new page and returns its context ID.
+func NewPage(s Session, url string) (string, error) {
 	params := map[string]interface{}{
 		"type": "tab",
 	}
@@ -258,8 +258,8 @@ func NewTab(s Session, url string) (string, error) {
 	return context, nil
 }
 
-// ListTabs returns all browsing contexts (tabs).
-func ListTabs(s Session) ([]TabInfo, error) {
+// ListPages returns all browsing contexts (pages).
+func ListPages(s Session) ([]PageInfo, error) {
 	resp, err := s.SendBidiCommand("browsingContext.getTree", map[string]interface{}{})
 	if err != nil {
 		return nil, err
@@ -267,7 +267,7 @@ func ListTabs(s Session) ([]TabInfo, error) {
 
 	var result struct {
 		Result struct {
-			Contexts []TabInfo `json:"contexts"`
+			Contexts []PageInfo `json:"contexts"`
 		} `json:"result"`
 	}
 	if err := json.Unmarshal(resp, &result); err != nil {
@@ -276,16 +276,16 @@ func ListTabs(s Session) ([]TabInfo, error) {
 	return result.Result.Contexts, nil
 }
 
-// SwitchTab activates a browsing context (tab).
-func SwitchTab(s Session, contextID string) error {
+// SwitchPage activates a browsing context (page).
+func SwitchPage(s Session, contextID string) error {
 	_, err := s.SendBidiCommand("browsingContext.activate", map[string]interface{}{
 		"context": contextID,
 	})
 	return err
 }
 
-// CloseTab closes a browsing context (tab).
-func CloseTab(s Session, contextID string) error {
+// ClosePage closes a browsing context (page).
+func ClosePage(s Session, contextID string) error {
 	_, err := s.SendBidiCommand("browsingContext.close", map[string]interface{}{
 		"context": contextID,
 	})

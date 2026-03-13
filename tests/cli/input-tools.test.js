@@ -27,7 +27,7 @@ describe('CLI: Input Tools', () => {
     assert.match(result, /vibium go/, 'Should list go');
     assert.match(result, /vibium click/, 'Should list click');
     assert.match(result, /vibium screenshot/, 'Should list screenshot');
-    assert.match(result, /vibium tab-new/, 'Should list new tab');
+    assert.match(result, /vibium page-new/, 'Should list new page');
     assert.match(result, /vibium scroll/, 'Should list scroll');
     assert.match(result, /vibium keys/, 'Should list keys');
   });
