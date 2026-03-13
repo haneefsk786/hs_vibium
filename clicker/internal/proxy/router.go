@@ -696,8 +696,16 @@ func (r *Router) OnClientMessage(client ClientTransport, msg string) {
 	}
 }
 
-// getContext retrieves the first browsing context.
+// getContext retrieves the active browsing context. It checks lastContext first
+// (set by tab-switch / tab-new), falling back to the first context from getTree.
 func (r *Router) getContext(session *BrowserSession) (string, error) {
+	session.mu.Lock()
+	last := session.lastContext
+	session.mu.Unlock()
+	if last != "" {
+		return last, nil
+	}
+
 	resp, err := r.sendInternalCommand(session, "browsingContext.getTree", map[string]interface{}{})
 	if err != nil {
 		return "", err

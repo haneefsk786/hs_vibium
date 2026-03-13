@@ -30,6 +30,7 @@ type Handlers struct {
 	recorder       *proxy.Recorder
 	downloadDir    string
 	lastElementBox *proxy.BoxInfo // stashed by MCPSession.SetLastElementBox via callback
+	activeContext  string         // last tab context switched to or created
 }
 
 // NewHandlers creates a new Handlers instance.
@@ -48,6 +49,7 @@ func NewHandlers(screenshotDir string, headless bool, connectURL string, connect
 // h.lastElementBox so Call() can include it in RecordActionEnd.
 func (h *Handlers) newSession() *proxy.MCPSession {
 	s := proxy.NewMCPSession(h.client)
+	s.Context = h.activeContext
 	s.OnBoxSet = func(box *proxy.BoxInfo) {
 		h.lastElementBox = box
 	}
@@ -1190,9 +1192,15 @@ func (h *Handlers) browserNewTab(args map[string]interface{}) (*ToolsCallResult,
 	url, _ := args["url"].(string)
 
 	s := h.newSession()
-	if _, err := proxy.NewTab(s, url); err != nil {
+	contextID, err := proxy.NewTab(s, url)
+	if err != nil {
 		return nil, fmt.Errorf("failed to create tab: %w", err)
 	}
+	// Activate and track the new tab so subsequent commands target it
+	if err := proxy.SwitchTab(s, contextID); err != nil {
+		return nil, fmt.Errorf("failed to activate new tab: %w", err)
+	}
+	h.activeContext = contextID
 
 	msg := "New tab opened"
 	if url != "" {
@@ -1274,6 +1282,7 @@ func (h *Handlers) browserSwitchTab(args map[string]interface{}) (*ToolsCallResu
 	if err := proxy.SwitchTab(s, contextID); err != nil {
 		return nil, err
 	}
+	h.activeContext = contextID
 
 	return &ToolsCallResult{
 		Content: []Content{{
@@ -1299,17 +1308,32 @@ func (h *Handlers) browserCloseTab(args map[string]interface{}) (*ToolsCallResul
 		return nil, fmt.Errorf("no tabs open")
 	}
 
-	idx := 0
+	idx := -1
 	if i, ok := args["index"].(float64); ok {
 		idx = int(i)
+	} else if h.activeContext != "" {
+		// No index given — default to the active tab
+		for i, tab := range tabs {
+			if tab.Context == h.activeContext {
+				idx = i
+				break
+			}
+		}
+	}
+	if idx < 0 {
+		idx = 0 // fall back to first tab
 	}
 
 	if idx < 0 || idx >= len(tabs) {
 		return nil, fmt.Errorf("tab index %d out of range (0-%d)", idx, len(tabs)-1)
 	}
 
-	if err := proxy.CloseTab(s, tabs[idx].Context); err != nil {
+	closedContext := tabs[idx].Context
+	if err := proxy.CloseTab(s, closedContext); err != nil {
 		return nil, err
+	}
+	if h.activeContext == closedContext {
+		h.activeContext = ""
 	}
 
 	return &ToolsCallResult{
