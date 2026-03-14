@@ -63,6 +63,15 @@ func (h *Handlers) newSession() *api.AgentSession {
 func (h *Handlers) Call(name string, args map[string]interface{}) (*ToolsCallResult, error) {
 	log.Debug("tool call", "name", name, "args", args)
 
+	// Inject a synthetic find trace event before selector-based actions
+	// so CLI recordings match the JS client's find→action pairs.
+	// Skip @e refs — those come from an explicit find the user already ran.
+	if h.recorder != nil && h.recorder.IsRecording() && needsFindStep(name) {
+		if sel, ok := args["selector"].(string); ok && sel != "" && !strings.HasPrefix(sel, "@e") {
+			h.recordFindStep(sel)
+		}
+	}
+
 	var callId string
 	if h.recorder != nil && h.recorder.IsRecording() && !isRecordingCommand(name) {
 		callId = h.recorder.NextCallId()
@@ -282,6 +291,60 @@ func isRecordingCommand(name string) bool {
 		return true
 	}
 	return false
+}
+
+// needsFindStep returns true for commands that take a selector and perform an
+// action (not find itself). These get a synthetic find trace event injected
+// before dispatch so CLI recordings match the JS client's find→action pairs.
+func needsFindStep(name string) bool {
+	switch name {
+	case "browser_click", "browser_dblclick", "browser_fill", "browser_type",
+		"browser_press", "browser_hover", "browser_select",
+		"browser_check", "browser_uncheck", "browser_focus",
+		"browser_scroll_into_view", "browser_drag",
+		"browser_get_text", "browser_get_html", "browser_get_value",
+		"browser_get_attribute", "browser_is_visible",
+		"browser_is_enabled", "browser_is_checked",
+		"browser_upload", "browser_highlight":
+		return true
+	}
+	return false
+}
+
+// recordFindStep emits a complete find trace event (before + screenshot + after)
+// so that CLI recordings produce the same find→action pairs as the JS client.
+func (h *Handlers) recordFindStep(selector string) {
+	if h.recorder == nil || !h.recorder.IsRecording() {
+		return
+	}
+
+	s := h.newSession()
+	ctx, err := s.GetContextID()
+	if err != nil {
+		return
+	}
+
+	callId := h.recorder.NextCallId()
+	pageId := h.getContext()
+	params := map[string]interface{}{"selector": selector}
+	h.recorder.RecordAction(callId, "vibium:find", params, "", pageId)
+
+	// Use the API path's polling find (handles page transitions, scrolls into view)
+	script, scriptArgs := api.BuildFindScript(
+		map[string]interface{}{"selector": selector}, false,
+	)
+	info, err := api.WaitForElementWithScript(s, ctx, script, scriptArgs, api.DefaultTimeout)
+
+	endTime := time.Now()
+
+	// Capture screenshot (element is now scrolled into view by the find script)
+	api.CaptureRecordingScreenshot(s, h.recorder, endTime)
+
+	var box *api.BoxInfo
+	if err == nil && info != nil {
+		box = &info.Box
+	}
+	h.recorder.RecordActionEnd(callId, "", endTime, box)
 }
 
 // getContext returns the first browsing context from the browser tree, or "".
@@ -1971,9 +2034,13 @@ func (h *Handlers) browserFill(args map[string]interface{}) (*ToolsCallResult, e
 	}
 	selector = h.resolveSelector(selector)
 
-	text, ok := args["text"].(string)
-	if !ok {
-		return nil, fmt.Errorf("text is required")
+	value, _ := args["value"].(string)
+	if value == "" {
+		// Fall back to "text" for backwards compatibility with MCP clients
+		value, _ = args["text"].(string)
+	}
+	if value == "" {
+		return nil, fmt.Errorf("value is required")
 	}
 
 	s := h.newSession()
@@ -1981,14 +2048,14 @@ func (h *Handlers) browserFill(args map[string]interface{}) (*ToolsCallResult, e
 	if err != nil {
 		return nil, err
 	}
-	if err := api.Fill(s, ctx, api.ElementParams{Selector: selector}, text); err != nil {
+	if err := api.Fill(s, ctx, api.ElementParams{Selector: selector}, value); err != nil {
 		return nil, fmt.Errorf("failed to fill: %w", err)
 	}
 
 	return &ToolsCallResult{
 		Content: []Content{{
 			Type: "text",
-			Text: fmt.Sprintf("Filled %q into %s", text, selector),
+			Text: fmt.Sprintf("Filled %q into %s", value, selector),
 		}},
 	}, nil
 }

@@ -36,7 +36,7 @@ func (r *Router) handleVibiumFind(session *BrowserSession, cmd bidiCommand) {
 		timeout = time.Duration(timeoutMs) * time.Millisecond
 	}
 
-	script, args := buildFindScript(cmd.Params, false)
+	script, args := BuildFindScript(cmd.Params, false)
 
 	info, err := r.waitForElementWithScript(session, context, script, args, timeout)
 	if err != nil {
@@ -74,7 +74,7 @@ func (r *Router) handleVibiumFindAll(session *BrowserSession, cmd bidiCommand) {
 	hasText, _ := cmd.Params["hasText"].(string)
 	has, _ := cmd.Params["has"].(string)
 
-	script, args := buildFindScript(cmd.Params, true)
+	script, args := BuildFindScript(cmd.Params, true)
 
 	// Add filter args
 	args = append(args,
@@ -94,10 +94,10 @@ func (r *Router) handleVibiumFindAll(session *BrowserSession, cmd bidiCommand) {
 	})
 }
 
-// buildFindScript builds the JS function and arguments for element finding.
+// BuildFindScript builds the JS function and arguments for element finding.
 // It dispatches based on which selector params are present.
 // If findAll is true, returns all matching elements; otherwise returns the first match.
-func buildFindScript(params map[string]interface{}, findAll bool) (string, []map[string]interface{}) {
+func BuildFindScript(params map[string]interface{}, findAll bool) (string, []map[string]interface{}) {
 	selector, _ := params["selector"].(string)
 	scope, _ := params["scope"].(string)
 	role, _ := params["role"].(string)
@@ -439,6 +439,6 @@ func describeSelector(args []map[string]interface{}) string {
 // waitForElement polls until an element matching the CSS selector is found or timeout.
 // This is the legacy method used by click/type handlers.
 func (r *Router) waitForElement(session *BrowserSession, context, selector string, timeout time.Duration) (*ElementInfo, error) {
-	script, args := buildFindScript(map[string]interface{}{"selector": selector}, false)
+	script, args := BuildFindScript(map[string]interface{}{"selector": selector}, false)
 	return r.waitForElementWithScript(session, context, script, args, timeout)
 }

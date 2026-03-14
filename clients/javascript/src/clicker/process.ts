@@ -124,9 +124,7 @@ export class VibiumProcess {
   private _cleanupListeners: (() => void) | null = null;
 
   async stop(): Promise<void> {
-    if (this._stopped) {
-      return;
-    }
+    if (this._stopped) return;
     this._stopped = true;
 
     // Remove process exit listeners to avoid leaks
@@ -138,41 +136,38 @@ export class VibiumProcess {
     }
 
     return new Promise((resolve) => {
-      this._process.on('exit', () => {
-        resolve();
-      });
+      let resolved = false;
+      const done = () => {
+        if (!resolved) { resolved = true; resolve(); }
+      };
 
-      // Close stdin to signal the child to shut down
+      this._process.on('exit', done);
+
+      // Close stdin to signal graceful shutdown
       try { this._process.stdin?.end(); } catch {}
 
       if (process.platform === 'win32') {
         try {
           execFileSync('taskkill', ['/T', '/F', '/PID', this._process.pid!.toString()], { stdio: 'ignore' });
-        } catch {
-          // Process may have already exited
-        }
-        resolve();
+        } catch {}
+        done();
       } else {
-        let exited = false;
-        this._process.on('exit', () => { exited = true; });
-
-        // Try graceful shutdown first (closing stdin should trigger exit)
-        // Use SIGTERM as fallback
+        // SIGTERM after 1s if graceful shutdown hasn't worked
         setTimeout(() => {
-          if (!exited) {
+          if (!resolved) {
             try { this._process.kill('SIGTERM'); } catch {}
           }
         }, 1000);
 
-        // Force kill after longer timeout
+        // SIGKILL after 4s as last resort
         setTimeout(() => {
-          if (!exited) {
+          if (!resolved) {
             try { this._process.kill('SIGKILL'); } catch {}
-            setTimeout(() => resolve(), 500);
-          } else {
-            resolve();
           }
         }, 4000);
+
+        // Hard resolve after 5s — process is definitely dead by now
+        setTimeout(done, 5000);
       }
     });
   }

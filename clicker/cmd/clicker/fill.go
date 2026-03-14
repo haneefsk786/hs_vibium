@@ -20,7 +20,7 @@ func newFillCmd() *cobra.Command {
 
 			result, err := daemonCall("browser_fill", map[string]interface{}{
 				"selector": selector,
-				"text":     text,
+				"value":    text,
 			})
 			if err != nil {
 				printError(err)
