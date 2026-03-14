@@ -18,10 +18,10 @@ func newDownloadCmd() *cobra.Command {
 		},
 	}
 
-	setDirCmd := &cobra.Command{
-		Use:   "set-dir [path]",
+	dirCmd := &cobra.Command{
+		Use:   "dir [path]",
 		Short: "Set the download directory",
-		Example: `  vibium download set-dir ./downloads
+		Example: `  vibium download dir ./downloads
   # Set download directory to ./downloads`,
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -40,6 +40,6 @@ func newDownloadCmd() *cobra.Command {
 		},
 	}
 
-	downloadCmd.AddCommand(setDirCmd)
+	downloadCmd.AddCommand(dirCmd)
 	return downloadCmd
 }

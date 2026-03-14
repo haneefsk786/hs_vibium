@@ -7,17 +7,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newEmulateMediaCmd() *cobra.Command {
+func newMediaCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "emulate-media",
+		Use:   "media",
 		Short: "Override CSS media features",
-		Example: `  vibium emulate-media --color-scheme dark
+		Example: `  vibium media --color-scheme dark
   # Enable dark mode
 
-  vibium emulate-media --reduced-motion reduce
+  vibium media --reduced-motion reduce
   # Reduce motion
 
-  vibium emulate-media --color-scheme light --forced-colors active
+  vibium media --color-scheme light --forced-colors active
   # Override multiple features`,
 		Args: cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {

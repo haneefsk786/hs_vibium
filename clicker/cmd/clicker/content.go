@@ -8,14 +8,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newSetContentCmd() *cobra.Command {
+func newContentCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "set-content [html]",
+		Use:   "content [html]",
 		Short: "Replace the page HTML content",
-		Example: `  vibium set-content "<h1>Hello World</h1>"
+		Example: `  vibium content "<h1>Hello World</h1>"
   # Set page content directly
 
-  echo "<h1>Hello</h1>" | vibium set-content --stdin
+  echo "<h1>Hello</h1>" | vibium content --stdin
   # Set page content from stdin`,
 		Args: cobra.RangeArgs(0, 1),
 		Run: func(cmd *cobra.Command, args []string) {

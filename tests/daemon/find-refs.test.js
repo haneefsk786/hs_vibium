@@ -41,9 +41,9 @@ describe('Daemon: Find @refs workflow', () => {
     stopDaemon();
   });
 
-  test('find --text returns @ref', () => {
+  test('find text returns @ref', () => {
     clicker('go https://example.com');
-    const findResult = clickerJSON('find --text "Example Domain"');
+    const findResult = clickerJSON('find text "Example Domain"');
     assert.strictEqual(findResult.ok, true);
     assert.ok(findResult.result.includes('@e1'), 'find should return @e1');
     assert.ok(findResult.result.includes('[h1]'), 'Should find h1 element');
@@ -57,30 +57,30 @@ describe('Daemon: Find @refs workflow', () => {
     assert.ok(findResult.result.includes('[a]'), 'Should show [a] tag label');
 
     clickerJSON('click @e1');
-    clickerJSON('wait-for-load');
+    clickerJSON('wait load');
     const urlResult = clickerJSON('url');
     assert.ok(urlResult.result.includes('iana.org'), 'Should navigate to IANA after clicking');
   });
 
-  test('find --role returns @ref and click @e1 navigates', () => {
+  test('find role returns @ref and click @e1 navigates', () => {
     clicker('go https://example.com');
-    const findResult = clickerJSON('find --role link');
+    const findResult = clickerJSON('find role link');
     assert.strictEqual(findResult.ok, true);
-    assert.ok(findResult.result.includes('@e1'), 'find --role should return @e1');
+    assert.ok(findResult.result.includes('@e1'), 'find role should return @e1');
     assert.ok(findResult.result.includes('[a]'), 'Should show [a] tag label');
 
     clickerJSON('click @e1');
-    clickerJSON('wait-for-load');
+    clickerJSON('wait load');
     const urlResult = clickerJSON('url');
     assert.ok(urlResult.result.includes('iana.org'), 'Should navigate to IANA after clicking');
   });
 
-  test('find-all returns multiple @refs', () => {
+  test('find --all returns multiple @refs', () => {
     clicker('go https://example.com');
-    const findResult = clickerJSON('find-all "p"');
+    const findResult = clickerJSON('find --all "p"');
     assert.strictEqual(findResult.ok, true);
-    assert.ok(findResult.result.includes('@e1'), 'find-all should return @e1');
-    assert.ok(findResult.result.includes('@e2'), 'find-all should return @e2');
+    assert.ok(findResult.result.includes('@e1'), 'find --all should return @e1');
+    assert.ok(findResult.result.includes('@e2'), 'find --all should return @e2');
   });
 
   test('find resets refMap from previous map', () => {
@@ -91,7 +91,7 @@ describe('Daemon: Find @refs workflow', () => {
     assert.ok(mapResult.result.includes('@e1'), 'map should have @e1');
 
     // Now find resets the refMap — @e1 now points to h1
-    const findResult = clickerJSON('find --text "Example Domain"');
+    const findResult = clickerJSON('find text "Example Domain"');
     assert.strictEqual(findResult.ok, true);
     assert.ok(findResult.result.includes('@e1'), 'find should return @e1');
     assert.ok(findResult.result.includes('[h1]'), 'find should return h1');

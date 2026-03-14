@@ -9,8 +9,8 @@ const { execSync } = require('node:child_process');
 const { VIBIUM } = require('../helpers');
 
 describe('CLI: Actionability', () => {
-  test('check-actionable reports visibility status', () => {
-    const result = execSync(`${VIBIUM} check-actionable https://example.com "a"`, {
+  test('is actionable reports visibility status', () => {
+    const result = execSync(`${VIBIUM} is actionable https://example.com "a"`, {
       encoding: 'utf-8',
       timeout: 30000,
     });

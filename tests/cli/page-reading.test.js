@@ -1,6 +1,6 @@
 /**
  * CLI Tests: Page Reading Tools
- * Tests text, html, find-all commands
+ * Tests text, html, find --all commands
  */
 
 const { test, describe } = require('node:test');
@@ -42,8 +42,8 @@ describe('CLI: Page Reading', () => {
     assert.match(result, /Example Domain/, 'Should contain text');
   });
 
-  test('find-all command returns multiple @refs', () => {
-    const result = execSync(`${VIBIUM} find-all https://example.com "p"`, {
+  test('find --all returns multiple @refs', () => {
+    const result = execSync(`${VIBIUM} find https://example.com "p" --all`, {
       encoding: 'utf-8',
       timeout: 30000,
     });
@@ -51,8 +51,8 @@ describe('CLI: Page Reading', () => {
     assert.match(result, /\[p\]/, 'Should contain [p] tag label');
   });
 
-  test('find-all command with --limit', () => {
-    const result = execSync(`${VIBIUM} find-all https://example.com "p" --limit 1`, {
+  test('find --all with --limit', () => {
+    const result = execSync(`${VIBIUM} find https://example.com "p" --all --limit 1`, {
       encoding: 'utf-8',
       timeout: 30000,
     });

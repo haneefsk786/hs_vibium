@@ -1,6 +1,6 @@
 /**
  * Daemon CLI: Recording Tests
- * Tests record start/stop/start-group/stop-group/start-chunk/stop-chunk CLI commands.
+ * Tests record start/stop/group start/group stop/chunk start/chunk stop CLI commands.
  */
 
 const { test, describe, before, after } = require('node:test');
@@ -193,11 +193,11 @@ describe('Daemon CLI: Recording', () => {
     assert.ok(frames[0].height > 0, 'screencast-frame should have height');
   });
 
-  test('record start-group / stop-group adds group markers', () => {
+  test('record group start / group stop adds group markers', () => {
     clickerJSON('record start');
-    clickerJSON('record start-group "Login"');
+    clickerJSON('record group start "Login"');
     clickerJSON('go https://example.com');
-    clickerJSON('record stop-group');
+    clickerJSON('record group stop');
 
     const zipPath = tmpPath('groups.zip');
     clickerJSON(`record stop -o "${zipPath}"`);
@@ -216,22 +216,22 @@ describe('Daemon CLI: Recording', () => {
     assert.ok(afterEvents.length > 0, 'Should have matching after event with same callId');
   });
 
-  test('record start-chunk / stop-chunk saves chunk zip', () => {
+  test('record chunk start / chunk stop saves chunk zip', () => {
     clickerJSON('record start');
     clickerJSON('go https://example.com');
 
     // Stop first chunk
     const chunkPath1 = tmpPath('chunk1.zip');
-    const chunk1 = clickerJSON(`record stop-chunk -o "${chunkPath1}"`);
-    assert.strictEqual(chunk1.ok, true, 'stop-chunk should succeed');
+    const chunk1 = clickerJSON(`record chunk stop -o "${chunkPath1}"`);
+    assert.strictEqual(chunk1.ok, true, 'chunk stop should succeed');
 
     // Start second chunk
-    clickerJSON('record start-chunk');
+    clickerJSON('record chunk start');
     clickerJSON('go https://example.com');
 
     // Stop second chunk
     const chunkPath2 = tmpPath('chunk2.zip');
-    clickerJSON(`record stop-chunk -o "${chunkPath2}"`);
+    clickerJSON(`record chunk stop -o "${chunkPath2}"`);
 
     // Verify both files
     assert.ok(fs.existsSync(chunkPath1), 'Chunk 1 should exist');

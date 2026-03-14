@@ -1,6 +1,6 @@
 /**
  * CLI Tests: Page Context Tracking
- * Verifies that page-switch and page-new correctly track the active page
+ * Verifies that page switch and page new correctly track the active page
  * so subsequent commands target the right context.
  */
 
@@ -29,8 +29,8 @@ before(async () => {
 after(() => {
   // Close any extra pages created during tests (switch to 1 and close, if it exists)
   try {
-    execSync(`${VIBIUM} page-switch 1`, { encoding: 'utf-8', timeout: 10000 });
-    execSync(`${VIBIUM} page-close`, { encoding: 'utf-8', timeout: 10000 });
+    execSync(`${VIBIUM} page switch 1`, { encoding: 'utf-8', timeout: 10000 });
+    execSync(`${VIBIUM} page close`, { encoding: 'utf-8', timeout: 10000 });
   } catch {
     // ignore — page may not exist
   }
@@ -38,15 +38,15 @@ after(() => {
 });
 
 describe('CLI: Page Context Tracking', () => {
-  test('page-switch targets correct page for subsequent commands', () => {
+  test('page switch targets correct page for subsequent commands', () => {
     // Page 0 is already on the home page (title: "The Internet")
     // Create page 1 and navigate to login page
-    execSync(`${VIBIUM} page-new ${baseURL}/login`, {
+    execSync(`${VIBIUM} page new ${baseURL}/login`, {
       encoding: 'utf-8',
       timeout: 30000,
     });
 
-    // page-new should have switched to the new page — verify title
+    // page new should have switched to the new page — verify title
     const loginTitle = execSync(`${VIBIUM} title`, {
       encoding: 'utf-8',
       timeout: 30000,
@@ -54,7 +54,7 @@ describe('CLI: Page Context Tracking', () => {
     assert.match(loginTitle, /Login/, 'New page should show login page title');
 
     // Switch back to page 0 and verify title
-    execSync(`${VIBIUM} page-switch 0`, { encoding: 'utf-8', timeout: 30000 });
+    execSync(`${VIBIUM} page switch 0`, { encoding: 'utf-8', timeout: 30000 });
     const homeTitle = execSync(`${VIBIUM} title`, {
       encoding: 'utf-8',
       timeout: 30000,
@@ -62,7 +62,7 @@ describe('CLI: Page Context Tracking', () => {
     assert.match(homeTitle, /The Internet/, 'Page 0 should show home page title');
 
     // Switch to page 1 and verify title
-    execSync(`${VIBIUM} page-switch 1`, { encoding: 'utf-8', timeout: 30000 });
+    execSync(`${VIBIUM} page switch 1`, { encoding: 'utf-8', timeout: 30000 });
     const loginTitle2 = execSync(`${VIBIUM} title`, {
       encoding: 'utf-8',
       timeout: 30000,
@@ -70,10 +70,10 @@ describe('CLI: Page Context Tracking', () => {
     assert.match(loginTitle2, /Login/, 'Page 1 should show login page title');
 
     // Cleanup: close page 1
-    execSync(`${VIBIUM} page-close`, { encoding: 'utf-8', timeout: 30000 });
+    execSync(`${VIBIUM} page close`, { encoding: 'utf-8', timeout: 30000 });
   });
 
-  test('page-new switches to the new page', () => {
+  test('page new switches to the new page', () => {
     // Page 0 is on the home page
     const homeTitleBefore = execSync(`${VIBIUM} title`, {
       encoding: 'utf-8',
@@ -82,7 +82,7 @@ describe('CLI: Page Context Tracking', () => {
     assert.match(homeTitleBefore, /The Internet/, 'Should start on home page');
 
     // Open a new page with the login page
-    execSync(`${VIBIUM} page-new ${baseURL}/login`, {
+    execSync(`${VIBIUM} page new ${baseURL}/login`, {
       encoding: 'utf-8',
       timeout: 30000,
     });
@@ -92,21 +92,21 @@ describe('CLI: Page Context Tracking', () => {
       encoding: 'utf-8',
       timeout: 30000,
     }).trim();
-    assert.match(titleAfter, /Login/, 'Should be on the new page after page-new');
+    assert.match(titleAfter, /Login/, 'Should be on the new page after page new');
 
     // Cleanup: close the new page
-    execSync(`${VIBIUM} page-close`, { encoding: 'utf-8', timeout: 30000 });
+    execSync(`${VIBIUM} page close`, { encoding: 'utf-8', timeout: 30000 });
   });
 
-  test('page-close without index closes the active page', () => {
+  test('page close without index closes the active page', () => {
     // Page 0 is on the home page
-    execSync(`${VIBIUM} page-new ${baseURL}/login`, {
+    execSync(`${VIBIUM} page new ${baseURL}/login`, {
       encoding: 'utf-8',
       timeout: 30000,
     });
 
     // We're now on page 1 (login page). Close without index — should close page 1.
-    const result = execSync(`${VIBIUM} page-close`, {
+    const result = execSync(`${VIBIUM} page close`, {
       encoding: 'utf-8',
       timeout: 30000,
     });

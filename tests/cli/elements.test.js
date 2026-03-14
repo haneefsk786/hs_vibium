@@ -38,8 +38,9 @@ describe('CLI: Elements', () => {
     assert.match(result, /(More information|Learn more)/i, 'Should show link text');
   });
 
-  test('find command supports --xpath locator', () => {
-    const result = execSync(`${VIBIUM} find ${baseURL}/inputs --xpath "//input"`, {
+  test('find xpath subcommand locates element', () => {
+    execSync(`${VIBIUM} go ${baseURL}/inputs`, { encoding: 'utf-8', timeout: 30000 });
+    const result = execSync(`${VIBIUM} find xpath "//input"`, {
       encoding: 'utf-8',
       timeout: 30000,
     });

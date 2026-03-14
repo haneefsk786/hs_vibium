@@ -67,12 +67,57 @@ The first command installs Vibium and the `vibium` binary, and downloads Chrome.
 ### CLI Quick Reference
 
 ```bash
-vibium go https://example.com          # go to a page
-vibium text                            # get page text
-vibium click "a"                       # click an element
-vibium type "input" "hello"            # type into a field
+# Core actions
+vibium go https://example.com          # navigate to URL
+vibium click "a"                       # click element
+vibium fill "input" "hello"            # clear and fill input
+vibium type "input" "hello"            # type into element
 vibium screenshot -o page.png          # capture screenshot
 vibium eval "document.title"           # run JavaScript
+
+# Read data
+vibium text                            # get page text
+vibium url                             # get current URL
+vibium title                           # get page title
+
+# Viewport & window
+vibium viewport                        # get viewport dimensions
+vibium viewport 1920 1080              # set viewport size
+vibium window                          # get window dimensions
+vibium window --state maximized        # maximize window
+
+# Configuration
+vibium geolocation 40.7 -74.0          # override geolocation
+vibium content "<h1>Hi</h1>"           # replace page HTML
+vibium media --color-scheme dark       # override CSS media
+
+# Check state
+vibium is visible "h1"                 # check if visible
+vibium is enabled "button"             # check if enabled
+
+# Find elements
+vibium find "a"                        # find by CSS selector
+vibium find "a" --all                  # find all matching
+vibium find text "Sign In"             # find by text
+vibium find role button                # find by ARIA role
+
+# Wait
+vibium wait ".loaded"                  # wait for element
+vibium wait url "/dashboard"           # wait for URL
+vibium wait text "Welcome"             # wait for text
+vibium wait load                       # wait for page load
+
+# Pages, mouse, scroll
+vibium page new https://example.com    # open new page
+vibium page switch 1                   # switch to page
+vibium mouse click 100 200             # click at coordinates
+vibium scroll into-view "#footer"      # scroll element into view
+
+# Cookies & storage
+vibium cookies                         # get all cookies
+vibium cookies "session" "abc123"      # set cookie
+vibium storage                         # export storage state
+vibium storage restore state.json      # restore from file
 ```
 
 Full command list: [SKILL.md](skills/vibe-check/SKILL.md)

@@ -1,6 +1,6 @@
 /**
  * CLI Tests: Find commands return @refs
- * Tests that find, find-all return @refs in oneshot mode
+ * Tests that find, find --all return @refs in oneshot mode
  */
 
 const { test, describe } = require('node:test');
@@ -18,8 +18,8 @@ describe('CLI: Find @refs', () => {
     assert.match(result, /\[a\]/, 'Should show [a] tag label');
   });
 
-  test('find-all returns multiple @refs', () => {
-    const result = execSync(`${VIBIUM} find-all https://example.com "p"`, {
+  test('find --all returns multiple @refs', () => {
+    const result = execSync(`${VIBIUM} find https://example.com "p" --all`, {
       encoding: 'utf-8',
       timeout: 30000,
     });
@@ -27,8 +27,8 @@ describe('CLI: Find @refs', () => {
     assert.match(result, /@e2/, 'Should contain @e2');
   });
 
-  test('find-all --limit 1 returns single @ref', () => {
-    const result = execSync(`${VIBIUM} find-all https://example.com "p" --limit 1`, {
+  test('find --all --limit 1 returns single @ref', () => {
+    const result = execSync(`${VIBIUM} find https://example.com "p" --all --limit 1`, {
       encoding: 'utf-8',
       timeout: 30000,
     });

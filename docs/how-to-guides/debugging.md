@@ -47,12 +47,12 @@ Interactive WebSocket tester. Connect to a URL and send/receive messages:
 
 Type JSON messages and see responses. Useful for debugging BiDi protocol issues.
 
-### check-actionable
+### is actionable
 
 Check all actionability conditions for an element:
 
 ```bash
-./clicker/bin/vibium check-actionable https://example.com "button"
+./clicker/bin/vibium is actionable https://example.com "button"
 # Output:
 # Checking actionability for selector: button
 # ✓ Visible: true

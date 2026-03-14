@@ -8,14 +8,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newSetGeolocationCmd() *cobra.Command {
+func newGeolocationCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "set-geolocation [latitude] [longitude]",
+		Use:   "geolocation [latitude] [longitude]",
 		Short: "Override the browser geolocation",
-		Example: `  vibium set-geolocation 40.7128 -74.006
+		Example: `  vibium geolocation 40.7128 -74.006
   # Set location to New York City
 
-  vibium set-geolocation 51.5074 -0.1278 --accuracy 10
+  vibium geolocation 51.5074 -0.1278 --accuracy 10
   # Set location to London with 10m accuracy`,
 		Args: cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {

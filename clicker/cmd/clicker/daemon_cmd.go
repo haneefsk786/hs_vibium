@@ -34,7 +34,8 @@ func newDaemonCmd() *cobra.Command {
 
 func newDaemonStartCmd() *cobra.Command {
 	var (
-		detach      bool
+		foreground  bool
+		detach      bool // kept for -d compatibility
 		idleTimeout time.Duration
 		internal    bool // hidden flag for auto-start
 		connectFlag string
@@ -45,10 +46,10 @@ func newDaemonStartCmd() *cobra.Command {
 		Use:   "start",
 		Short: "Start the vibium daemon",
 		Example: `  vibium daemon start
-  # Starts daemon in foreground
-
-  vibium daemon start -d
   # Starts daemon in background
+
+  vibium daemon start --foreground
+  # Starts daemon in foreground (for debugging)
 
   vibium daemon start --idle-timeout 30m
   # Auto-shutdown after 30 minutes of inactivity
@@ -56,7 +57,7 @@ func newDaemonStartCmd() *cobra.Command {
   vibium daemon start --connect ws://remote:9515/session
   # Connect to a remote browser instead of launching a local one`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if detach && !internal {
+			if !foreground && !internal {
 				// Daemonize: re-exec as detached child
 				daemonize(idleTimeout, connectFlag, headerFlags)
 				return
@@ -67,7 +68,9 @@ func newDaemonStartCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVarP(&detach, "detach", "d", false, "Run daemon in background")
+	cmd.Flags().BoolVar(&foreground, "foreground", false, "Run daemon in foreground (for debugging)")
+	cmd.Flags().BoolVarP(&detach, "detach", "d", true, "Run daemon in background (default, kept for compatibility)")
+	cmd.Flags().MarkHidden("detach")
 	cmd.Flags().DurationVar(&idleTimeout, "idle-timeout", 30*time.Minute, "Shutdown after this duration of inactivity (0 to disable)")
 	cmd.Flags().BoolVar(&internal, "_internal", false, "Internal flag for auto-start")
 	cmd.Flags().MarkHidden("_internal")

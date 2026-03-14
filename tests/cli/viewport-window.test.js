@@ -19,8 +19,8 @@ describe('CLI: Viewport & Window Commands', () => {
     assert.ok(typeof vp.height === 'number', 'Should have numeric height');
   });
 
-  test('set-viewport then viewport verifies dimensions', () => {
-    execSync(`${VIBIUM} set-viewport 800 600`, {
+  test('viewport with args sets dimensions', () => {
+    execSync(`${VIBIUM} viewport 800 600`, {
       encoding: 'utf-8',
       timeout: 30000,
     });
@@ -43,8 +43,8 @@ describe('CLI: Viewport & Window Commands', () => {
     assert.ok(typeof win.height === 'number', 'Should have numeric height');
   });
 
-  test('set-window then window verifies dimensions', () => {
-    execSync(`${VIBIUM} set-window 900 700`, {
+  test('window with args sets dimensions', () => {
+    execSync(`${VIBIUM} window 900 700`, {
       encoding: 'utf-8',
       timeout: 30000,
     });

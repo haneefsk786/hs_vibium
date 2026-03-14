@@ -110,10 +110,20 @@ func newRecordCmd() *cobra.Command {
 	}
 	stopCmd.Flags().StringP("output", "o", "", "Output file path (default: record.zip)")
 
-	startGroupCmd := &cobra.Command{
-		Use:   "start-group <name>",
+	// Group subcommand (replaces start-group/stop-group)
+	groupCmd := &cobra.Command{
+		Use:   "group",
+		Short: "Manage recording groups",
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			cmd.Help()
+		},
+	}
+
+	groupStartCmd := &cobra.Command{
+		Use:   "start <name>",
 		Short: "Start a named group in the recording",
-		Example: `  vibium record start-group "Login"
+		Example: `  vibium record group start "Login"
   # Groups nest actions in the trace viewer`,
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -128,10 +138,10 @@ func newRecordCmd() *cobra.Command {
 		},
 	}
 
-	stopGroupCmd := &cobra.Command{
-		Use:   "stop-group",
+	groupStopCmd := &cobra.Command{
+		Use:   "stop",
 		Short: "End the current recording group",
-		Example: `  vibium record stop-group`,
+		Example: `  vibium record group stop`,
 		Args:    cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			result, err := daemonCall("browser_record_stop_group", map[string]interface{}{})
@@ -143,13 +153,26 @@ func newRecordCmd() *cobra.Command {
 		},
 	}
 
-	startChunkCmd := &cobra.Command{
-		Use:   "start-chunk",
+	groupCmd.AddCommand(groupStartCmd)
+	groupCmd.AddCommand(groupStopCmd)
+
+	// Chunk subcommand (replaces start-chunk/stop-chunk)
+	chunkCmd := &cobra.Command{
+		Use:   "chunk",
+		Short: "Manage recording chunks",
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			cmd.Help()
+		},
+	}
+
+	chunkStartCmd := &cobra.Command{
+		Use:   "start",
 		Short: "Start a new chunk within the current recording",
-		Example: `  vibium record start-chunk
+		Example: `  vibium record chunk start
   # Start a new chunk (for splitting long recordings)
 
-  vibium record start-chunk --name "part2" --title "Checkout Flow"`,
+  vibium record chunk start --name "part2" --title "Checkout Flow"`,
 		Args: cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			name, _ := cmd.Flags().GetString("name")
@@ -170,16 +193,16 @@ func newRecordCmd() *cobra.Command {
 			printResult(result)
 		},
 	}
-	startChunkCmd.Flags().String("name", "", "Name for the chunk")
-	startChunkCmd.Flags().String("title", "", "Title shown in trace viewer")
+	chunkStartCmd.Flags().String("name", "", "Name for the chunk")
+	chunkStartCmd.Flags().String("title", "", "Title shown in trace viewer")
 
-	stopChunkCmd := &cobra.Command{
-		Use:   "stop-chunk",
+	chunkStopCmd := &cobra.Command{
+		Use:   "stop",
 		Short: "Package current chunk into a ZIP file (recording stays active)",
-		Example: `  vibium record stop-chunk
+		Example: `  vibium record chunk stop
   # Save chunk to chunk.zip
 
-  vibium record stop-chunk -o part1.zip`,
+  vibium record chunk stop -o part1.zip`,
 		Args: cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			output, _ := cmd.Flags().GetString("output")
@@ -196,13 +219,14 @@ func newRecordCmd() *cobra.Command {
 			printResult(result)
 		},
 	}
-	stopChunkCmd.Flags().StringP("output", "o", "", "Output file path (default: chunk.zip)")
+	chunkStopCmd.Flags().StringP("output", "o", "", "Output file path (default: chunk.zip)")
+
+	chunkCmd.AddCommand(chunkStartCmd)
+	chunkCmd.AddCommand(chunkStopCmd)
 
 	recordCmd.AddCommand(startCmd)
 	recordCmd.AddCommand(stopCmd)
-	recordCmd.AddCommand(startGroupCmd)
-	recordCmd.AddCommand(stopGroupCmd)
-	recordCmd.AddCommand(startChunkCmd)
-	recordCmd.AddCommand(stopChunkCmd)
+	recordCmd.AddCommand(groupCmd)
+	recordCmd.AddCommand(chunkCmd)
 	return recordCmd
 }

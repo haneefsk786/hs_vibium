@@ -7,11 +7,68 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newCheckActionableCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "check-actionable [url] [selector]",
+func newIsCmd() *cobra.Command {
+	isCmd := &cobra.Command{
+		Use:   "is",
+		Short: "Check element state (visible, enabled, checked, actionable)",
+		Args:  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			cmd.Help()
+		},
+	}
+
+	visibleCmd := &cobra.Command{
+		Use:   "visible [selector]",
+		Short: "Check if an element is visible on the page",
+		Example: `  vibium is visible "h1"
+  # Prints true or false`,
+		Args: cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			result, err := daemonCall("browser_is_visible", map[string]interface{}{"selector": args[0]})
+			if err != nil {
+				printError(err)
+				return
+			}
+			printResult(result)
+		},
+	}
+
+	enabledCmd := &cobra.Command{
+		Use:   "enabled [selector]",
+		Short: "Check if an element is enabled",
+		Example: `  vibium is enabled "button[type=submit]"
+  # Prints true or false`,
+		Args: cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			result, err := daemonCall("browser_is_enabled", map[string]interface{}{"selector": args[0]})
+			if err != nil {
+				printError(err)
+				return
+			}
+			printResult(result)
+		},
+	}
+
+	checkedCmd := &cobra.Command{
+		Use:   "checked [selector]",
+		Short: "Check if a checkbox or radio is checked",
+		Example: `  vibium is checked "input[type=checkbox]"
+  # Prints true or false`,
+		Args: cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			result, err := daemonCall("browser_is_checked", map[string]interface{}{"selector": args[0]})
+			if err != nil {
+				printError(err)
+				return
+			}
+			printResult(result)
+		},
+	}
+
+	actionableCmd := &cobra.Command{
+		Use:   "actionable [url] [selector]",
 		Short: "Check actionability of an element (Visible, Stable, ReceivesEvents, Enabled, Editable)",
-		Example: `  vibium check-actionable https://example.com "a"
+		Example: `  vibium is actionable https://example.com "a"
   # Output:
   # Checking actionability for selector: a
   # ✓ Visible: true
@@ -76,7 +133,7 @@ func newCheckActionableCmd() *cobra.Command {
 				return
 			}
 
-			// Parse the result — daemon returns the evaluated value as text
+			// Parse the result
 			resultText := ""
 			if result != nil {
 				for _, c := range result.Content {
@@ -111,4 +168,10 @@ func newCheckActionableCmd() *cobra.Command {
 			printCheck("Editable", actionResult.Editable)
 		},
 	}
+
+	isCmd.AddCommand(visibleCmd)
+	isCmd.AddCommand(enabledCmd)
+	isCmd.AddCommand(checkedCmd)
+	isCmd.AddCommand(actionableCmd)
+	return isCmd
 }

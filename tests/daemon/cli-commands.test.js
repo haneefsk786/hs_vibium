@@ -75,14 +75,14 @@ describe('Daemon CLI: Element state commands', () => {
     stopDaemon();
   });
 
-  test('is-visible returns true for visible element', () => {
-    const result = clickerJSON('is-visible "h1"');
+  test('is visible returns true for visible element', () => {
+    const result = clickerJSON('is visible "h1"');
     assert.strictEqual(result.ok, true);
     assert.strictEqual(result.result, 'true');
   });
 
-  test('is-visible returns false for non-existent element', () => {
-    const result = clickerJSON('is-visible "#does-not-exist"');
+  test('is visible returns false for non-existent element', () => {
+    const result = clickerJSON('is visible "#does-not-exist"');
     assert.strictEqual(result.ok, true);
     assert.strictEqual(result.result, 'false');
   });
@@ -117,15 +117,15 @@ describe('Daemon CLI: Accessibility and search commands', () => {
     assert.ok(result.result.includes('WebArea'), 'Should contain WebArea root');
   });
 
-  test('find --role finds element by role and returns @ref', () => {
-    const result = clickerJSON('find --role heading');
+  test('find role finds element by role and returns @ref', () => {
+    const result = clickerJSON('find role heading');
     assert.strictEqual(result.ok, true);
     assert.ok(result.result.includes('@e1'), 'Should return @e1 ref');
     assert.ok(result.result.includes('[h1]'), 'Should find heading element');
   });
 
-  test('find --role finds element by role and text', () => {
-    const result = clickerJSON('find --role link --text "Learn more"');
+  test('find role finds element by role and name', () => {
+    const result = clickerJSON('find role link --name "Learn more"');
     assert.strictEqual(result.ok, true);
     assert.ok(result.result.includes('@e1'), 'Should return @e1 ref');
     assert.ok(result.result.includes('[a]'), 'Should find link element');
@@ -143,14 +143,14 @@ describe('Daemon CLI: Waiting commands', () => {
     stopDaemon();
   });
 
-  test('wait-for-load succeeds on loaded page', () => {
-    const result = clickerJSON('wait-for-load');
+  test('wait load succeeds on loaded page', () => {
+    const result = clickerJSON('wait load');
     assert.strictEqual(result.ok, true);
     assert.ok(result.result.includes('complete'), 'Should report page loaded');
   });
 
-  test('wait-for-url matches current URL', () => {
-    const result = clickerJSON('wait-for-url "example.com"');
+  test('wait url matches current URL', () => {
+    const result = clickerJSON('wait url "example.com"');
     assert.strictEqual(result.ok, true);
     assert.ok(result.result.includes('example.com'), 'Should match URL pattern');
   });
@@ -174,9 +174,9 @@ describe('Daemon CLI: Interaction commands', () => {
     stopDaemon();
   });
 
-  test('scroll-into-view scrolls element into view', () => {
+  test('scroll into-view scrolls element into view', () => {
     clicker('go https://example.com');
-    const result = clickerJSON('scroll-into-view "a"');
+    const result = clickerJSON('scroll into-view "a"');
     assert.strictEqual(result.ok, true);
     assert.ok(result.result.includes('Scrolled'), 'Should confirm scroll');
   });
