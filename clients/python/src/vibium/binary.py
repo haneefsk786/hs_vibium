@@ -237,10 +237,10 @@ class VibiumProcess:
         return instance
 
     def _cleanup(self) -> None:
-        """Terminate the subprocess if still running (called at exit)."""
+        """Kill the subprocess if still running (called at exit)."""
         try:
             if self._process.returncode is None:
-                self._process.terminate()
+                self._process.kill()
         except ProcessLookupError:
             pass
 

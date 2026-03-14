@@ -3733,6 +3733,9 @@ func (h *Handlers) browserRecordStop(args map[string]interface{}) (*ToolsCallRes
 		h.client.SetEventHandler(nil)
 	}
 
+	// Stop screenshot goroutine before stopping the recorder
+	h.recorder.StopScreenshots()
+
 	path, _ := args["path"].(string)
 	if path == "" {
 		path = "record.zip"

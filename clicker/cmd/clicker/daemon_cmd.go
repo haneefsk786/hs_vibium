@@ -214,7 +214,6 @@ func runDaemonForeground(idleTimeout time.Duration, connectFlag string, headerFl
 	})
 
 	// Install signal handler for clean shutdown
-	// This overrides the global signal handler from process.SetupSignalHandler()
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 	go func() {

@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/spf13/cobra"
 	"github.com/vibium/clicker/internal/agent"
@@ -105,6 +107,15 @@ The server provides browser automation tools:
 					ConnectHeaders: connectHeaders,
 				})
 				defer server.Close()
+
+				// Handle SIGTERM so Chrome is cleaned up even if stdin isn't closed
+				sigCh := make(chan os.Signal, 1)
+				signal.Notify(sigCh, syscall.SIGTERM)
+				go func() {
+					<-sigCh
+					server.Close()
+					os.Exit(0)
+				}()
 
 				if err := server.Run(); err != nil {
 					fmt.Fprintf(os.Stderr, "MCP server error: %v\n", err)

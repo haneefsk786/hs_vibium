@@ -53,18 +53,6 @@ func KillBrowser(cmd *exec.Cmd) error {
 	return cmd.Process.Kill()
 }
 
-// SetupSignalHandler sets up cleanup on SIGINT/SIGTERM.
-func SetupSignalHandler() {
-	c := make(chan os.Signal, 1)
-	setupSignalNotify(c)
-
-	go func() {
-		<-c
-		KillAll()
-		os.Exit(0)
-	}()
-}
-
 // WaitForSignal blocks until SIGINT/SIGTERM is received, then cleans up.
 func WaitForSignal() {
 	c := make(chan os.Signal, 1)

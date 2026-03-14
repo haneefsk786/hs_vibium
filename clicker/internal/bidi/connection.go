@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -18,7 +19,7 @@ const maxMessageSize = 10 * 1024 * 1024
 type Connection struct {
 	conn   *websocket.Conn
 	mu     sync.Mutex
-	closed bool
+	closed atomic.Bool
 	done   chan struct{} // closed on Close() to stop the ping loop
 }
 
@@ -75,11 +76,10 @@ func (c *Connection) pingLoop() {
 		case <-c.done:
 			return
 		case <-ticker.C:
-			c.mu.Lock()
-			if c.closed {
-				c.mu.Unlock()
+			if c.closed.Load() {
 				return
 			}
+			c.mu.Lock()
 			err := c.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(10*time.Second))
 			c.mu.Unlock()
 			if err != nil {
@@ -94,7 +94,7 @@ func (c *Connection) Send(msg string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if c.closed {
+	if c.closed.Load() {
 		return fmt.Errorf("connection closed")
 	}
 
@@ -104,7 +104,7 @@ func (c *Connection) Send(msg string) error {
 // Receive receives a text message from the WebSocket.
 // Blocks until a message is received or the read deadline (120s) expires.
 func (c *Connection) Receive() (string, error) {
-	if c.closed {
+	if c.closed.Load() {
 		return "", fmt.Errorf("connection closed")
 	}
 
@@ -125,18 +125,16 @@ func (c *Connection) Receive() (string, error) {
 
 // Close closes the WebSocket connection.
 func (c *Connection) Close() error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if c.closed {
+	if !c.closed.CompareAndSwap(false, true) {
 		return nil
 	}
 
-	c.closed = true
 	close(c.done)
 
 	// Send close message
+	c.mu.Lock()
 	c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+	c.mu.Unlock()
 
 	return c.conn.Close()
 }
