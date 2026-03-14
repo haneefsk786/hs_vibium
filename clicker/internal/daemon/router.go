@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/vibium/clicker/internal/log"
-	"github.com/vibium/clicker/internal/mcp"
+	"github.com/vibium/clicker/internal/agent"
 )
 
 // StatusResult is returned by daemon/status.
@@ -56,13 +56,13 @@ func (d *Daemon) handleConnection(conn net.Conn) {
 }
 
 // handleRequest parses and routes a JSON-RPC request.
-func (d *Daemon) handleRequest(data []byte) *mcp.Response {
-	var req mcp.Request
+func (d *Daemon) handleRequest(data []byte) *agent.Response {
+	var req agent.Request
 	if err := json.Unmarshal(data, &req); err != nil {
-		return &mcp.Response{
+		return &agent.Response{
 			JSONRPC: "2.0",
-			Error: &mcp.Error{
-				Code:    mcp.ParseError,
+			Error: &agent.Error{
+				Code:    agent.ParseError,
 				Message: "Parse error",
 				Data:    err.Error(),
 			},
@@ -70,11 +70,11 @@ func (d *Daemon) handleRequest(data []byte) *mcp.Response {
 	}
 
 	if req.JSONRPC != "2.0" {
-		return &mcp.Response{
+		return &agent.Response{
 			JSONRPC: "2.0",
 			ID:      req.ID,
-			Error: &mcp.Error{
-				Code:    mcp.InvalidRequest,
+			Error: &agent.Error{
+				Code:    agent.InvalidRequest,
 				Message: "Invalid Request",
 				Data:    "jsonrpc must be '2.0'",
 			},
@@ -88,14 +88,14 @@ func (d *Daemon) handleRequest(data []byte) *mcp.Response {
 	}
 
 	if mcpErr != nil {
-		return &mcp.Response{
+		return &agent.Response{
 			JSONRPC: "2.0",
 			ID:      req.ID,
 			Error:   mcpErr,
 		}
 	}
 
-	return &mcp.Response{
+	return &agent.Response{
 		JSONRPC: "2.0",
 		ID:      req.ID,
 		Result:  result,
@@ -103,7 +103,7 @@ func (d *Daemon) handleRequest(data []byte) *mcp.Response {
 }
 
 // route dispatches requests to the appropriate handler.
-func (d *Daemon) route(req mcp.Request) (interface{}, *mcp.Error) {
+func (d *Daemon) route(req agent.Request) (interface{}, *agent.Error) {
 	log.Debug("daemon request", "method", req.Method, "id", req.ID)
 
 	switch req.Method {
@@ -115,16 +115,16 @@ func (d *Daemon) route(req mcp.Request) (interface{}, *mcp.Error) {
 	case "tools/call":
 		return d.handleToolsCall(req.Params)
 	case "tools/list":
-		return mcp.ToolsListResult{
-			Tools: mcp.GetToolSchemas(),
+		return agent.ToolsListResult{
+			Tools: agent.GetToolSchemas(),
 		}, nil
 	case "initialize":
 		return d.handleInitialize()
 	case "initialized", "notifications/initialized":
 		return nil, nil
 	default:
-		return nil, &mcp.Error{
-			Code:    mcp.MethodNotFound,
+		return nil, &agent.Error{
+			Code:    agent.MethodNotFound,
 			Message: "Method not found",
 			Data:    req.Method,
 		}
@@ -132,7 +132,7 @@ func (d *Daemon) route(req mcp.Request) (interface{}, *mcp.Error) {
 }
 
 // handleStatus returns daemon status information.
-func (d *Daemon) handleStatus() (interface{}, *mcp.Error) {
+func (d *Daemon) handleStatus() (interface{}, *agent.Error) {
 	return StatusResult{
 		Version:   d.version,
 		PID:       pidSelf(),
@@ -143,13 +143,13 @@ func (d *Daemon) handleStatus() (interface{}, *mcp.Error) {
 }
 
 // handleInitialize handles the MCP initialize request.
-func (d *Daemon) handleInitialize() (interface{}, *mcp.Error) {
-	return mcp.InitializeResult{
+func (d *Daemon) handleInitialize() (interface{}, *agent.Error) {
+	return agent.InitializeResult{
 		ProtocolVersion: "2024-11-05",
-		Capabilities: mcp.ServerCapabilities{
-			Tools: &mcp.ToolsCapability{},
+		Capabilities: agent.ServerCapabilities{
+			Tools: &agent.ToolsCapability{},
 		},
-		ServerInfo: mcp.ServerInfo{
+		ServerInfo: agent.ServerInfo{
 			Name:    "vibium",
 			Version: d.version,
 		},
@@ -157,11 +157,11 @@ func (d *Daemon) handleInitialize() (interface{}, *mcp.Error) {
 }
 
 // handleToolsCall executes a tool and returns the result.
-func (d *Daemon) handleToolsCall(params json.RawMessage) (interface{}, *mcp.Error) {
-	var p mcp.ToolsCallParams
+func (d *Daemon) handleToolsCall(params json.RawMessage) (interface{}, *agent.Error) {
+	var p agent.ToolsCallParams
 	if err := json.Unmarshal(params, &p); err != nil {
-		return nil, &mcp.Error{
-			Code:    mcp.InvalidParams,
+		return nil, &agent.Error{
+			Code:    agent.InvalidParams,
 			Message: "Invalid params",
 			Data:    err.Error(),
 		}
@@ -173,8 +173,8 @@ func (d *Daemon) handleToolsCall(params json.RawMessage) (interface{}, *mcp.Erro
 	d.mu.Unlock()
 
 	if err != nil {
-		return mcp.ToolsCallResult{
-			Content: []mcp.Content{{Type: "text", Text: err.Error()}},
+		return agent.ToolsCallResult{
+			Content: []agent.Content{{Type: "text", Text: err.Error()}},
 			IsError: true,
 		}, nil
 	}

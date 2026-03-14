@@ -1,4 +1,4 @@
-package proxy
+package api
 
 import (
 	"encoding/json"
@@ -19,7 +19,7 @@ func (r *Router) handleVibiumClick(session *BrowserSession, cmd bidiCommand) {
 		return
 	}
 
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	info, err := resolveWithActionability(s, context, ep, ClickChecks)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -44,7 +44,7 @@ func (r *Router) handleVibiumDblclick(session *BrowserSession, cmd bidiCommand) 
 		return
 	}
 
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	info, err := resolveWithActionability(s, context, ep, ClickChecks)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -71,7 +71,7 @@ func (r *Router) handleVibiumFill(session *BrowserSession, cmd bidiCommand) {
 		return
 	}
 
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	if _, err := resolveWithActionability(s, context, ep, FillChecks); err != nil {
 		r.sendError(session, cmd.ID, err)
 		return
@@ -116,7 +116,7 @@ func (r *Router) handleVibiumType(session *BrowserSession, cmd bidiCommand) {
 		return
 	}
 
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	info, err := resolveWithActionability(s, context, ep, ClickChecks)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -147,7 +147,7 @@ func (r *Router) handleVibiumPress(session *BrowserSession, cmd bidiCommand) {
 		return
 	}
 
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	info, err := resolveWithActionability(s, context, ep, ClickChecks)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -177,7 +177,7 @@ func (r *Router) handleVibiumClear(session *BrowserSession, cmd bidiCommand) {
 		return
 	}
 
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	if _, err := resolveWithActionability(s, context, ep, FillChecks); err != nil {
 		r.sendError(session, cmd.ID, err)
 		return
@@ -213,7 +213,7 @@ func (r *Router) handleVibiumCheck(session *BrowserSession, cmd bidiCommand) {
 		return
 	}
 
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	info, err := resolveWithActionability(s, context, ep, ClickChecks)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -246,7 +246,7 @@ func (r *Router) handleVibiumUncheck(session *BrowserSession, cmd bidiCommand) {
 		return
 	}
 
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	info, err := resolveWithActionability(s, context, ep, ClickChecks)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -280,7 +280,7 @@ func (r *Router) handleVibiumSelectOption(session *BrowserSession, cmd bidiComma
 		return
 	}
 
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	if _, err := resolveWithActionability(s, context, ep, SelectChecks); err != nil {
 		r.sendError(session, cmd.ID, err)
 		return
@@ -316,7 +316,7 @@ func (r *Router) handleVibiumHover(session *BrowserSession, cmd bidiCommand) {
 		return
 	}
 
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	info, err := resolveWithActionability(s, context, ep, HoverChecks)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -342,7 +342,7 @@ func (r *Router) handleVibiumFocus(session *BrowserSession, cmd bidiCommand) {
 		return
 	}
 
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	if err := FocusElement(s, context, ep); err != nil {
 		r.sendError(session, cmd.ID, err)
 		return
@@ -370,7 +370,7 @@ func (r *Router) handleVibiumDragTo(session *BrowserSession, cmd bidiCommand) {
 	}
 	targetEp := ExtractElementParams(targetParams)
 
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	srcInfo, err := resolveWithActionability(s, context, ep, HoverChecks)
 	if err != nil {
 		r.sendError(session, cmd.ID, fmt.Errorf("source: %w", err))
@@ -427,7 +427,7 @@ func (r *Router) handleVibiumTap(session *BrowserSession, cmd bidiCommand) {
 		return
 	}
 
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	info, err := resolveWithActionability(s, context, ep, ClickChecks)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -453,7 +453,7 @@ func (r *Router) handleVibiumScrollIntoView(session *BrowserSession, cmd bidiCom
 		return
 	}
 
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	if err := ScrollIntoView(s, context, ep); err != nil {
 		r.sendError(session, cmd.ID, err)
 		return
@@ -566,17 +566,17 @@ func (r *Router) handleVibiumElSetFiles(session *BrowserSession, cmd bidiCommand
 
 // clickAtCenter performs a mouse click at the center of an element.
 func (r *Router) clickAtCenter(session *BrowserSession, context string, info *ElementInfo) error {
-	return ClickAtCenter(NewProxySession(r, session, context), context, info)
+	return ClickAtCenter(NewAPISession(r, session, context), context, info)
 }
 
 // typeText types a string of text using keyboard events.
 func (r *Router) typeText(session *BrowserSession, context, text string) error {
-	return TypeText(NewProxySession(r, session, context), context, text)
+	return TypeText(NewAPISession(r, session, context), context, text)
 }
 
 // pressKey presses a key or key combo (e.g. "Enter", "Control+a").
 func (r *Router) pressKey(session *BrowserSession, context, key string) error {
-	return PressKey(NewProxySession(r, session, context), context, key)
+	return PressKey(NewAPISession(r, session, context), context, key)
 }
 
 // ---------------------------------------------------------------------------
@@ -714,7 +714,7 @@ func PressKey(s Session, context, key string) error {
 
 // isChecked runs JS to check if an element is checked (for checkboxes/radios).
 func (r *Router) isChecked(session *BrowserSession, context string, ep ElementParams) (bool, error) {
-	return IsChecked(NewProxySession(r, session, context), context, ep)
+	return IsChecked(NewAPISession(r, session, context), context, ep)
 }
 
 // ---------------------------------------------------------------------------

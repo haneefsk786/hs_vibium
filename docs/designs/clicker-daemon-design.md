@@ -604,7 +604,7 @@ func runNavigate(url string) {
 
 **Shared tool handlers:**
 
-The existing MCP tool handler functions (currently called from `clicker mcp`) need to be importable by the daemon's router. If they're already in a shared package, no changes needed. If they're embedded in the `mcp` command, extract them to a shared `internal/mcp/tools.go` — this is a move, not a rewrite.
+The existing MCP tool handler functions (currently called from `clicker mcp`) need to be importable by the daemon's router. If they're already in a shared package, no changes needed. If they're embedded in the `mcp` command, extract them to a shared `internal/agent/tools.go` — this is a move, not a rewrite.
 
 ### 7.2 Task Breakdown
 
@@ -630,7 +630,7 @@ The existing MCP tool handler functions (currently called from `clicker mcp`) ne
 
 4. **Ensure tool handlers are importable**
    - If already in a shared package: no work.
-   - If embedded in `clicker mcp` command: move to `internal/mcp/tools.go`. Pure code move, no logic changes.
+   - If embedded in `clicker mcp` command: move to `internal/agent/tools.go`. Pure code move, no logic changes.
 
 5. **Implement `internal/transport/socket.go`**
    - Client-side socket connection for CLI → daemon

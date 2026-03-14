@@ -8,13 +8,13 @@ import (
 	"time"
 
 	"github.com/vibium/clicker/internal/daemon"
-	"github.com/vibium/clicker/internal/mcp"
+	"github.com/vibium/clicker/internal/agent"
 	"github.com/vibium/clicker/internal/paths"
 )
 
 // daemonCall sends a tool call to the daemon, auto-starting if needed.
 // Returns the result or an error.
-func daemonCall(toolName string, args map[string]interface{}) (*mcp.ToolsCallResult, error) {
+func daemonCall(toolName string, args map[string]interface{}) (*agent.ToolsCallResult, error) {
 	// First attempt
 	result, err := daemon.Call(toolName, args)
 	if err == nil {

@@ -10,7 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/vibium/clicker/internal/browser"
-	"github.com/vibium/clicker/internal/proxy"
+	"github.com/vibium/clicker/internal/api"
 )
 
 func newServeCmd() *cobra.Command {
@@ -31,13 +31,13 @@ func newServeCmd() *cobra.Command {
 			fmt.Printf("Starting Vibium proxy server on port %d...\n", port)
 
 			// Create router to manage browser sessions
-			router := proxy.NewRouter(headless, "", nil)
+			router := api.NewRouter(headless, "", nil)
 
-			server := proxy.NewServer(
-				proxy.WithPort(port),
-				proxy.WithOnConnect(router.OnClientConnect),
-				proxy.WithOnMessage(router.OnClientMessage),
-				proxy.WithOnClose(router.OnClientDisconnect),
+			server := api.NewServer(
+				api.WithPort(port),
+				api.WithOnConnect(router.OnClientConnect),
+				api.WithOnMessage(router.OnClientMessage),
+				api.WithOnClose(router.OnClientDisconnect),
 			)
 
 			if err := server.Start(); err != nil {

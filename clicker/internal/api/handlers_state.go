@@ -1,4 +1,4 @@
-package proxy
+package api
 
 import (
 	"encoding/json"
@@ -717,12 +717,12 @@ func buildElJSONScript(ep ElementParams, body string) (string, []map[string]inte
 
 // evalElementScript runs a state script and returns the string result.
 func (r *Router) evalElementScript(session *BrowserSession, context, script string, args []map[string]interface{}) (string, error) {
-	return EvalElementScript(NewProxySession(r, session, context), context, script, args)
+	return EvalElementScript(NewAPISession(r, session, context), context, script, args)
 }
 
 // evalBoolScript runs a boolean script and parses the "true"/"false" result.
 func (r *Router) evalBoolScript(session *BrowserSession, context, script string, args []map[string]interface{}) (bool, error) {
-	return EvalBoolScript(NewProxySession(r, session, context), context, script, args)
+	return EvalBoolScript(NewAPISession(r, session, context), context, script, args)
 }
 
 // ---------------------------------------------------------------------------
@@ -764,7 +764,7 @@ func EvalBoolScript(s Session, context, script string, args []map[string]interfa
 
 // resolveElementNoWait tries to find an element immediately without polling.
 func (r *Router) resolveElementNoWait(session *BrowserSession, context string, ep ElementParams) (*ElementInfo, error) {
-	return ResolveElementNoWait(NewProxySession(r, session, context), context, ep)
+	return ResolveElementNoWait(NewAPISession(r, session, context), context, ep)
 }
 
 // ---------------------------------------------------------------------------

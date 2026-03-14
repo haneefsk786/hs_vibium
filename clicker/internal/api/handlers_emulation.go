@@ -1,4 +1,4 @@
-package proxy
+package api
 
 import (
 	"bytes"
@@ -102,7 +102,7 @@ func (r *Router) handlePageEmulateMedia(session *BrowserSession, cmd bidiCommand
 		}
 	}
 
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	if err := EmulateMedia(s, context, overrides); err != nil {
 		r.sendError(session, cmd.ID, err)
 		return
@@ -255,7 +255,7 @@ func (r *Router) handlePageSetWindow(session *BrowserSession, cmd bidiCommand) {
 
 // handlePageWindow handles vibium:page.window — returns the current OS window state and dimensions.
 func (r *Router) handlePageWindow(session *BrowserSession, cmd bidiCommand) {
-	s := NewProxySession(r, session, "")
+	s := NewAPISession(r, session, "")
 	win, err := GetWindow(s)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -290,7 +290,7 @@ func (r *Router) handlePageSetGeolocation(session *BrowserSession, cmd bidiComma
 		accuracy = acc
 	}
 
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	if err := SetGeolocation(s, context, lat, lng, accuracy); err != nil {
 		r.sendError(session, cmd.ID, err)
 		return

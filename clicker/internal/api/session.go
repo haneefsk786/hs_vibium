@@ -1,4 +1,4 @@
-package proxy
+package api
 
 import (
 	"encoding/json"
@@ -31,62 +31,62 @@ type Session interface {
 }
 
 // ---------------------------------------------------------------------------
-// ProxySession — adapts Router + BrowserSession to Session.
+// APISession — adapts Router + BrowserSession to Session.
 // ---------------------------------------------------------------------------
 
-// ProxySession wraps a Router and BrowserSession pair so that shared
+// APISession wraps a Router and BrowserSession pair so that shared
 // standalone functions can call sendInternalCommand through the Session
 // interface.
-type ProxySession struct {
+type APISession struct {
 	Router  *Router
 	Session *BrowserSession
 	Context string // optional explicit context override
 }
 
-// NewProxySession creates a ProxySession.
-func NewProxySession(r *Router, s *BrowserSession, context string) *ProxySession {
-	return &ProxySession{Router: r, Session: s, Context: context}
+// NewAPISession creates a APISession.
+func NewAPISession(r *Router, s *BrowserSession, context string) *APISession {
+	return &APISession{Router: r, Session: s, Context: context}
 }
 
-func (p *ProxySession) SendBidiCommand(method string, params map[string]interface{}) (json.RawMessage, error) {
+func (p *APISession) SendBidiCommand(method string, params map[string]interface{}) (json.RawMessage, error) {
 	return p.Router.sendInternalCommand(p.Session, method, params)
 }
 
-func (p *ProxySession) SendBidiCommandWithTimeout(method string, params map[string]interface{}, timeout time.Duration) (json.RawMessage, error) {
+func (p *APISession) SendBidiCommandWithTimeout(method string, params map[string]interface{}, timeout time.Duration) (json.RawMessage, error) {
 	return p.Router.sendInternalCommandWithTimeout(p.Session, method, params, timeout)
 }
 
-func (p *ProxySession) GetContextID() (string, error) {
+func (p *APISession) GetContextID() (string, error) {
 	if p.Context != "" {
 		return p.Context, nil
 	}
 	return p.Router.getContext(p.Session)
 }
 
-func (p *ProxySession) SetLastElementBox(box *BoxInfo) {
+func (p *APISession) SetLastElementBox(box *BoxInfo) {
 	p.Session.SetLastElementBox(box)
 }
 
 // ---------------------------------------------------------------------------
-// MCPSession — adapts *bidi.Client to Session.
+// AgentSession — adapts *bidi.Client to Session.
 // ---------------------------------------------------------------------------
 
-// MCPSession wraps a bidi.Client so that shared standalone functions can send
+// AgentSession wraps a bidi.Client so that shared standalone functions can send
 // BiDi commands through the Session interface. The bidi.Client already handles
 // error responses as Go errors, so checkBidiError on wrapped responses is a
 // safe no-op.
-type MCPSession struct {
+type AgentSession struct {
 	Client   *bidi.Client
 	Context  string              // optional explicit context override (active tab)
 	OnBoxSet func(box *BoxInfo)  // optional callback when element box is set
 }
 
-// NewMCPSession creates an MCPSession.
-func NewMCPSession(client *bidi.Client) *MCPSession {
-	return &MCPSession{Client: client}
+// NewAgentSession creates an AgentSession.
+func NewAgentSession(client *bidi.Client) *AgentSession {
+	return &AgentSession{Client: client}
 }
 
-func (m *MCPSession) SendBidiCommand(method string, params map[string]interface{}) (json.RawMessage, error) {
+func (m *AgentSession) SendBidiCommand(method string, params map[string]interface{}) (json.RawMessage, error) {
 	msg, err := m.Client.SendCommand(method, params)
 	if err != nil {
 		return nil, err
@@ -100,7 +100,7 @@ func (m *MCPSession) SendBidiCommand(method string, params map[string]interface{
 	return wrapped, nil
 }
 
-func (m *MCPSession) SendBidiCommandWithTimeout(method string, params map[string]interface{}, timeout time.Duration) (json.RawMessage, error) {
+func (m *AgentSession) SendBidiCommandWithTimeout(method string, params map[string]interface{}, timeout time.Duration) (json.RawMessage, error) {
 	msg, err := m.Client.SendCommandWithTimeout(method, params, timeout)
 	if err != nil {
 		return nil, err
@@ -112,13 +112,13 @@ func (m *MCPSession) SendBidiCommandWithTimeout(method string, params map[string
 	return wrapped, nil
 }
 
-func (m *MCPSession) SetLastElementBox(box *BoxInfo) {
+func (m *AgentSession) SetLastElementBox(box *BoxInfo) {
 	if m.OnBoxSet != nil {
 		m.OnBoxSet(box)
 	}
 }
 
-func (m *MCPSession) GetContextID() (string, error) {
+func (m *AgentSession) GetContextID() (string, error) {
 	if m.Context != "" {
 		return m.Context, nil
 	}

@@ -1,4 +1,4 @@
-package mcp
+package agent
 
 import (
 	"encoding/base64"
@@ -13,7 +13,7 @@ import (
 	"github.com/vibium/clicker/internal/bidi"
 	"github.com/vibium/clicker/internal/browser"
 	"github.com/vibium/clicker/internal/log"
-	"github.com/vibium/clicker/internal/proxy"
+	"github.com/vibium/clicker/internal/api"
 )
 
 // Handlers manages browser session state and executes tool calls.
@@ -27,9 +27,9 @@ type Handlers struct {
 	connectHeaders http.Header // headers for remote WebSocket connection
 	refMap         map[string]string // @e1 -> CSS selector
 	lastMap        string            // last map output (for diff)
-	recorder       *proxy.Recorder
+	recorder       *api.Recorder
 	downloadDir    string
-	lastElementBox *proxy.BoxInfo // stashed by MCPSession.SetLastElementBox via callback
+	lastElementBox *api.BoxInfo // stashed by AgentSession.SetLastElementBox via callback
 	activeContext  string         // last page context switched to or created
 }
 
@@ -45,12 +45,12 @@ func NewHandlers(screenshotDir string, headless bool, connectURL string, connect
 	}
 }
 
-// newSession creates an MCPSession that writes element box info back to
+// newSession creates an AgentSession that writes element box info back to
 // h.lastElementBox so Call() can include it in RecordActionEnd.
-func (h *Handlers) newSession() *proxy.MCPSession {
-	s := proxy.NewMCPSession(h.client)
+func (h *Handlers) newSession() *api.AgentSession {
+	s := api.NewAgentSession(h.client)
 	s.Context = h.activeContext
-	s.OnBoxSet = func(box *proxy.BoxInfo) {
+	s.OnBoxSet = func(box *api.BoxInfo) {
 		h.lastElementBox = box
 	}
 	return s
@@ -58,7 +58,7 @@ func (h *Handlers) newSession() *proxy.MCPSession {
 
 // Call executes a tool by name with the given arguments.
 // When recording is active, it wraps the dispatch with RecordAction/RecordActionEnd
-// to produce before/after events (matching the proxy path), and captures a
+// to produce before/after events (matching the API path), and captures a
 // screenshot after each non-recording action completes.
 func (h *Handlers) Call(name string, args map[string]interface{}) (*ToolsCallResult, error) {
 	log.Debug("tool call", "name", name, "args", args)
@@ -75,13 +75,13 @@ func (h *Handlers) Call(name string, args map[string]interface{}) (*ToolsCallRes
 
 	endTime := time.Now()
 
-	// Read and clear the element box stashed by MCPSession.SetLastElementBox
+	// Read and clear the element box stashed by AgentSession.SetLastElementBox
 	box := h.lastElementBox
 	h.lastElementBox = nil
 
 	// Per-action screenshot: capture after successful non-recording commands
 	if err == nil && h.recorder != nil && h.recorder.IsRecording() && !isRecordingCommand(name) {
-		proxy.CaptureRecordingScreenshot(h.newSession(), h.recorder, endTime)
+		api.CaptureRecordingScreenshot(h.newSession(), h.recorder, endTime)
 	}
 
 	if callId != "" {
@@ -295,7 +295,7 @@ func (h *Handlers) getContext() string {
 }
 
 // mcpToolToMethod maps an MCP tool name to a vibium: method name so the
-// trace viewer shows the same action titles as the proxy path.
+// trace viewer shows the same action titles as the API path.
 func mcpToolToMethod(name string) string {
 	switch name {
 	// Navigation
@@ -589,7 +589,7 @@ func (h *Handlers) browserNavigate(args map[string]interface{}) (*ToolsCallResul
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.Navigate(s, ctx, url, "complete"); err != nil {
+	if err := api.Navigate(s, ctx, url, "complete"); err != nil {
 		return nil, fmt.Errorf("failed to navigate: %w", err)
 	}
 
@@ -618,7 +618,7 @@ func (h *Handlers) browserClick(args map[string]interface{}) (*ToolsCallResult, 
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.Click(s, ctx, proxy.ElementParams{Selector: selector}); err != nil {
+	if err := api.Click(s, ctx, api.ElementParams{Selector: selector}); err != nil {
 		return nil, fmt.Errorf("failed to click: %w", err)
 	}
 
@@ -652,7 +652,7 @@ func (h *Handlers) browserType(args map[string]interface{}) (*ToolsCallResult, e
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.TypeInto(s, ctx, proxy.ElementParams{Selector: selector}, text); err != nil {
+	if err := api.TypeInto(s, ctx, api.ElementParams{Selector: selector}, text); err != nil {
 		return nil, fmt.Errorf("failed to type: %w", err)
 	}
 
@@ -714,7 +714,7 @@ func (h *Handlers) browserScreenshot(args map[string]interface{}) (*ToolsCallRes
 	if err != nil {
 		return nil, err
 	}
-	base64Data, err := proxy.Screenshot(s, ctx, fullPage)
+	base64Data, err := api.Screenshot(s, ctx, fullPage)
 	if err != nil {
 		return nil, fmt.Errorf("failed to capture screenshot: %w", err)
 	}
@@ -787,7 +787,7 @@ func (h *Handlers) browserFind(args map[string]interface{}) (*ToolsCallResult, e
 	hasSemantic := role != "" || text != "" || label != "" || placeholder != "" || testid != "" || xpath != "" || alt != "" || title != ""
 
 	if hasSemantic {
-		timeout := proxy.DefaultTimeout
+		timeout := api.DefaultTimeout
 		if t, ok := args["timeout"].(float64); ok {
 			timeout = time.Duration(t) * time.Millisecond
 		}
@@ -1130,12 +1130,12 @@ func (h *Handlers) browserNewPage(args map[string]interface{}) (*ToolsCallResult
 	url, _ := args["url"].(string)
 
 	s := h.newSession()
-	contextID, err := proxy.NewPage(s, url)
+	contextID, err := api.NewPage(s, url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create page: %w", err)
 	}
 	// Activate and track the new page so subsequent commands target it
-	if err := proxy.SwitchPage(s, contextID); err != nil {
+	if err := api.SwitchPage(s, contextID); err != nil {
 		return nil, fmt.Errorf("failed to activate new page: %w", err)
 	}
 	h.activeContext = contextID
@@ -1160,7 +1160,7 @@ func (h *Handlers) browserListPages(args map[string]interface{}) (*ToolsCallResu
 	}
 
 	s := h.newSession()
-	pages, err := proxy.ListPages(s)
+	pages, err := api.ListPages(s)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pages: %w", err)
 	}
@@ -1188,7 +1188,7 @@ func (h *Handlers) browserSwitchPage(args map[string]interface{}) (*ToolsCallRes
 	}
 
 	s := h.newSession()
-	pages, err := proxy.ListPages(s)
+	pages, err := api.ListPages(s)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pages: %w", err)
 	}
@@ -1217,7 +1217,7 @@ func (h *Handlers) browserSwitchPage(args map[string]interface{}) (*ToolsCallRes
 		return nil, fmt.Errorf("index or url is required")
 	}
 
-	if err := proxy.SwitchPage(s, contextID); err != nil {
+	if err := api.SwitchPage(s, contextID); err != nil {
 		return nil, err
 	}
 	h.activeContext = contextID
@@ -1237,7 +1237,7 @@ func (h *Handlers) browserClosePage(args map[string]interface{}) (*ToolsCallResu
 	}
 
 	s := h.newSession()
-	pages, err := proxy.ListPages(s)
+	pages, err := api.ListPages(s)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pages: %w", err)
 	}
@@ -1267,7 +1267,7 @@ func (h *Handlers) browserClosePage(args map[string]interface{}) (*ToolsCallResu
 	}
 
 	closedContext := pages[idx].Context
-	if err := proxy.ClosePage(s, closedContext); err != nil {
+	if err := api.ClosePage(s, closedContext); err != nil {
 		return nil, err
 	}
 	if h.activeContext == closedContext {
@@ -1299,7 +1299,7 @@ func (h *Handlers) browserA11yTree(args map[string]interface{}) (*ToolsCallResul
 		return nil, err
 	}
 
-	result, err := proxy.A11yTree(s, ctx, interestingOnly, "")
+	result, err := api.A11yTree(s, ctx, interestingOnly, "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get accessibility tree: %w", err)
 	}
@@ -1330,7 +1330,7 @@ func (h *Handlers) browserHover(args map[string]interface{}) (*ToolsCallResult, 
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.Hover(s, ctx, proxy.ElementParams{Selector: selector}); err != nil {
+	if err := api.Hover(s, ctx, api.ElementParams{Selector: selector}); err != nil {
 		return nil, fmt.Errorf("failed to hover: %w", err)
 	}
 
@@ -1364,7 +1364,7 @@ func (h *Handlers) browserSelect(args map[string]interface{}) (*ToolsCallResult,
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.SelectOption(s, ctx, proxy.ElementParams{Selector: selector}, value); err != nil {
+	if err := api.SelectOption(s, ctx, api.ElementParams{Selector: selector}, value); err != nil {
 		return nil, fmt.Errorf("failed to select: %w", err)
 	}
 
@@ -1402,7 +1402,7 @@ func (h *Handlers) browserScroll(args map[string]interface{}) (*ToolsCallResult,
 	x, y := 0, 0
 	if selector, ok := args["selector"].(string); ok && selector != "" {
 		selector = h.resolveSelector(selector)
-		info, err := proxy.ResolveElement(s, ctx, proxy.ElementParams{Selector: selector})
+		info, err := api.ResolveElement(s, ctx, api.ElementParams{Selector: selector})
 		if err != nil {
 			return nil, err
 		}
@@ -1428,7 +1428,7 @@ func (h *Handlers) browserScroll(args map[string]interface{}) (*ToolsCallResult,
 		return nil, fmt.Errorf("invalid direction: %q (use up, down, left, right)", direction)
 	}
 
-	if err := proxy.ScrollWheel(s, ctx, x, y, deltaX, deltaY); err != nil {
+	if err := api.ScrollWheel(s, ctx, x, y, deltaX, deltaY); err != nil {
 		return nil, fmt.Errorf("failed to scroll: %w", err)
 	}
 
@@ -1456,7 +1456,7 @@ func (h *Handlers) browserKeys(args map[string]interface{}) (*ToolsCallResult, e
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.PressKey(s, ctx, keys); err != nil {
+	if err := api.PressKey(s, ctx, keys); err != nil {
 		return nil, fmt.Errorf("failed to press keys: %w", err)
 	}
 
@@ -1485,14 +1485,14 @@ func (h *Handlers) browserGetHTML(args map[string]interface{}) (*ToolsCallResult
 	var html string
 	if selector, ok := args["selector"].(string); ok && selector != "" {
 		selector = h.resolveSelector(selector)
-		ep := proxy.ElementParams{Selector: selector}
+		ep := api.ElementParams{Selector: selector}
 		if outer {
-			html, err = proxy.GetOuterHTML(s, ctx, ep)
+			html, err = api.GetOuterHTML(s, ctx, ep)
 		} else {
-			html, err = proxy.GetInnerHTML(s, ctx, ep)
+			html, err = api.GetInnerHTML(s, ctx, ep)
 		}
 	} else {
-		html, err = proxy.GetContent(s, ctx)
+		html, err = api.GetContent(s, ctx)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get HTML: %w", err)
@@ -1594,9 +1594,9 @@ func (h *Handlers) browserWait(args map[string]interface{}) (*ToolsCallResult, e
 		return nil, err
 	}
 
-	ep := proxy.ElementParams{
+	ep := api.ElementParams{
 		Selector: selector,
-		Timeout:  proxy.DefaultTimeout,
+		Timeout:  api.DefaultTimeout,
 	}
 	if t, ok := args["timeout"].(float64); ok {
 		ep.Timeout = time.Duration(t) * time.Millisecond
@@ -1604,15 +1604,15 @@ func (h *Handlers) browserWait(args map[string]interface{}) (*ToolsCallResult, e
 
 	switch state {
 	case "attached":
-		if _, err := proxy.ResolveElement(s, ctx, ep); err != nil {
+		if _, err := api.ResolveElement(s, ctx, ep); err != nil {
 			return nil, err
 		}
 	case "visible":
-		if err := proxy.WaitForVisible(s, ctx, ep); err != nil {
+		if err := api.WaitForVisible(s, ctx, ep); err != nil {
 			return nil, err
 		}
 	case "hidden":
-		if err := proxy.WaitForHidden(s, ctx, ep); err != nil {
+		if err := api.WaitForHidden(s, ctx, ep); err != nil {
 			return nil, err
 		}
 	default:
@@ -1642,9 +1642,9 @@ func (h *Handlers) browserGetText(args map[string]interface{}) (*ToolsCallResult
 	var text string
 	if selector, ok := args["selector"].(string); ok && selector != "" {
 		selector = h.resolveSelector(selector)
-		text, err = proxy.GetInnerText(s, ctx, proxy.ElementParams{Selector: selector})
+		text, err = api.GetInnerText(s, ctx, api.ElementParams{Selector: selector})
 	} else {
-		text, err = proxy.EvalSimpleScript(s, ctx, "() => document.body.innerText")
+		text, err = api.EvalSimpleScript(s, ctx, "() => document.body.innerText")
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get text: %w", err)
@@ -1669,7 +1669,7 @@ func (h *Handlers) browserGetURL(args map[string]interface{}) (*ToolsCallResult,
 	if err != nil {
 		return nil, err
 	}
-	url, err := proxy.GetURL(s, ctx)
+	url, err := api.GetURL(s, ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get URL: %w", err)
 	}
@@ -1693,7 +1693,7 @@ func (h *Handlers) browserGetTitle(args map[string]interface{}) (*ToolsCallResul
 	if err != nil {
 		return nil, err
 	}
-	title, err := proxy.GetTitle(s, ctx)
+	title, err := api.GetTitle(s, ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get title: %w", err)
 	}
@@ -1718,20 +1718,20 @@ func (h *Handlers) pageClockInstall(args map[string]interface{}) (*ToolsCallResu
 		return nil, err
 	}
 
-	_, err = proxy.EvalSimpleScript(s, ctx, proxy.ClockScript)
+	_, err = api.EvalSimpleScript(s, ctx, api.ClockScript)
 	if err != nil {
 		return nil, fmt.Errorf("failed to install clock: %w", err)
 	}
 
 	if timeVal, ok := args["time"].(float64); ok {
 		script := fmt.Sprintf("() => { window.__vibiumClock.setSystemTime(%v); return 'ok'; }", timeVal)
-		if _, err := proxy.EvalSimpleScript(s, ctx, script); err != nil {
+		if _, err := api.EvalSimpleScript(s, ctx, script); err != nil {
 			return nil, fmt.Errorf("failed to set initial time: %w", err)
 		}
 	}
 
 	if tz, ok := args["timezone"].(string); ok && tz != "" {
-		if err := proxy.SetTimezone(s, ctx, tz); err != nil {
+		if err := api.SetTimezone(s, ctx, tz); err != nil {
 			return nil, fmt.Errorf("failed to set timezone: %w", err)
 		}
 	}
@@ -1758,7 +1758,7 @@ func (h *Handlers) pageClockFastForward(args map[string]interface{}) (*ToolsCall
 		return nil, err
 	}
 	script := fmt.Sprintf("() => { window.__vibiumClock.fastForward(%v); return 'ok'; }", ticks)
-	if _, err := proxy.EvalSimpleScript(s, ctx, script); err != nil {
+	if _, err := api.EvalSimpleScript(s, ctx, script); err != nil {
 		return nil, fmt.Errorf("clock.fastForward failed: %w", err)
 	}
 
@@ -1784,7 +1784,7 @@ func (h *Handlers) pageClockRunFor(args map[string]interface{}) (*ToolsCallResul
 		return nil, err
 	}
 	script := fmt.Sprintf("() => { window.__vibiumClock.runFor(%v); return 'ok'; }", ticks)
-	if _, err := proxy.EvalSimpleScript(s, ctx, script); err != nil {
+	if _, err := api.EvalSimpleScript(s, ctx, script); err != nil {
 		return nil, fmt.Errorf("clock.runFor failed: %w", err)
 	}
 
@@ -1810,7 +1810,7 @@ func (h *Handlers) pageClockPauseAt(args map[string]interface{}) (*ToolsCallResu
 		return nil, err
 	}
 	script := fmt.Sprintf("() => { window.__vibiumClock.pauseAt(%v); return 'ok'; }", timeVal)
-	if _, err := proxy.EvalSimpleScript(s, ctx, script); err != nil {
+	if _, err := api.EvalSimpleScript(s, ctx, script); err != nil {
 		return nil, fmt.Errorf("clock.pauseAt failed: %w", err)
 	}
 
@@ -1830,7 +1830,7 @@ func (h *Handlers) pageClockResume(args map[string]interface{}) (*ToolsCallResul
 	if err != nil {
 		return nil, err
 	}
-	if _, err := proxy.EvalSimpleScript(s, ctx, "() => { window.__vibiumClock.resume(); return 'ok'; }"); err != nil {
+	if _, err := api.EvalSimpleScript(s, ctx, "() => { window.__vibiumClock.resume(); return 'ok'; }"); err != nil {
 		return nil, fmt.Errorf("clock.resume failed: %w", err)
 	}
 
@@ -1856,7 +1856,7 @@ func (h *Handlers) pageClockSetFixedTime(args map[string]interface{}) (*ToolsCal
 		return nil, err
 	}
 	script := fmt.Sprintf("() => { window.__vibiumClock.setFixedTime(%v); return 'ok'; }", timeVal)
-	if _, err := proxy.EvalSimpleScript(s, ctx, script); err != nil {
+	if _, err := api.EvalSimpleScript(s, ctx, script); err != nil {
 		return nil, fmt.Errorf("clock.setFixedTime failed: %w", err)
 	}
 
@@ -1882,7 +1882,7 @@ func (h *Handlers) pageClockSetSystemTime(args map[string]interface{}) (*ToolsCa
 		return nil, err
 	}
 	script := fmt.Sprintf("() => { window.__vibiumClock.setSystemTime(%v); return 'ok'; }", timeVal)
-	if _, err := proxy.EvalSimpleScript(s, ctx, script); err != nil {
+	if _, err := api.EvalSimpleScript(s, ctx, script); err != nil {
 		return nil, fmt.Errorf("clock.setSystemTime failed: %w", err)
 	}
 
@@ -1906,7 +1906,7 @@ func (h *Handlers) pageClockSetTimezone(args map[string]interface{}) (*ToolsCall
 	tz, _ := args["timezone"].(string)
 
 	if tz == "" {
-		if err := proxy.ClearTimezone(s, ctx); err != nil {
+		if err := api.ClearTimezone(s, ctx); err != nil {
 			return nil, fmt.Errorf("failed to clear timezone: %w", err)
 		}
 		return &ToolsCallResult{
@@ -1914,7 +1914,7 @@ func (h *Handlers) pageClockSetTimezone(args map[string]interface{}) (*ToolsCall
 		}, nil
 	}
 
-	if err := proxy.SetTimezone(s, ctx, tz); err != nil {
+	if err := api.SetTimezone(s, ctx, tz); err != nil {
 		return nil, fmt.Errorf("failed to set timezone: %w", err)
 	}
 
@@ -1968,7 +1968,7 @@ func (h *Handlers) browserFill(args map[string]interface{}) (*ToolsCallResult, e
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.Fill(s, ctx, proxy.ElementParams{Selector: selector}, text); err != nil {
+	if err := api.Fill(s, ctx, api.ElementParams{Selector: selector}, text); err != nil {
 		return nil, fmt.Errorf("failed to fill: %w", err)
 	}
 
@@ -2000,11 +2000,11 @@ func (h *Handlers) browserPress(args map[string]interface{}) (*ToolsCallResult, 
 	// If selector given, click to focus first then press key
 	if selector, ok := args["selector"].(string); ok && selector != "" {
 		selector = h.resolveSelector(selector)
-		if err := proxy.PressOn(s, ctx, proxy.ElementParams{Selector: selector}, key); err != nil {
+		if err := api.PressOn(s, ctx, api.ElementParams{Selector: selector}, key); err != nil {
 			return nil, fmt.Errorf("failed to press key: %w", err)
 		}
 	} else {
-		if err := proxy.PressKey(s, ctx, key); err != nil {
+		if err := api.PressKey(s, ctx, key); err != nil {
 			return nil, fmt.Errorf("failed to press key: %w", err)
 		}
 	}
@@ -2028,7 +2028,7 @@ func (h *Handlers) browserBack(args map[string]interface{}) (*ToolsCallResult, e
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.GoBack(s, ctx); err != nil {
+	if err := api.GoBack(s, ctx); err != nil {
 		return nil, fmt.Errorf("failed to go back: %w", err)
 	}
 
@@ -2051,7 +2051,7 @@ func (h *Handlers) browserForward(args map[string]interface{}) (*ToolsCallResult
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.GoForward(s, ctx); err != nil {
+	if err := api.GoForward(s, ctx); err != nil {
 		return nil, fmt.Errorf("failed to go forward: %w", err)
 	}
 
@@ -2074,7 +2074,7 @@ func (h *Handlers) browserReload(args map[string]interface{}) (*ToolsCallResult,
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.Reload(s, ctx, "complete"); err != nil {
+	if err := api.Reload(s, ctx, "complete"); err != nil {
 		return nil, fmt.Errorf("failed to reload: %w", err)
 	}
 
@@ -2103,7 +2103,7 @@ func (h *Handlers) browserGetValue(args map[string]interface{}) (*ToolsCallResul
 	if err != nil {
 		return nil, err
 	}
-	value, err := proxy.GetValue(s, ctx, proxy.ElementParams{Selector: selector})
+	value, err := api.GetValue(s, ctx, api.ElementParams{Selector: selector})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get value: %w", err)
 	}
@@ -2138,7 +2138,7 @@ func (h *Handlers) browserGetAttribute(args map[string]interface{}) (*ToolsCallR
 	if err != nil {
 		return nil, err
 	}
-	value, err := proxy.GetAttribute(s, ctx, proxy.ElementParams{Selector: selector}, attribute)
+	value, err := api.GetAttribute(s, ctx, api.ElementParams{Selector: selector}, attribute)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get attribute: %w", err)
 	}
@@ -2168,7 +2168,7 @@ func (h *Handlers) browserIsVisible(args map[string]interface{}) (*ToolsCallResu
 	if err != nil {
 		return nil, err
 	}
-	visible, err := proxy.IsVisible(s, ctx, proxy.ElementParams{Selector: selector})
+	visible, err := api.IsVisible(s, ctx, api.ElementParams{Selector: selector})
 	if err != nil {
 		// Element not found or error — return false, not an error
 		return &ToolsCallResult{
@@ -2204,7 +2204,7 @@ func (h *Handlers) browserCheck(args map[string]interface{}) (*ToolsCallResult, 
 	if err != nil {
 		return nil, err
 	}
-	toggled, err := proxy.Check(s, ctx, proxy.ElementParams{Selector: selector})
+	toggled, err := api.Check(s, ctx, api.ElementParams{Selector: selector})
 	if err != nil {
 		return nil, fmt.Errorf("failed to check: %w", err)
 	}
@@ -2239,7 +2239,7 @@ func (h *Handlers) browserUncheck(args map[string]interface{}) (*ToolsCallResult
 	if err != nil {
 		return nil, err
 	}
-	toggled, err := proxy.Uncheck(s, ctx, proxy.ElementParams{Selector: selector})
+	toggled, err := api.Uncheck(s, ctx, api.ElementParams{Selector: selector})
 	if err != nil {
 		return nil, fmt.Errorf("failed to uncheck: %w", err)
 	}
@@ -2274,7 +2274,7 @@ func (h *Handlers) browserScrollIntoView(args map[string]interface{}) (*ToolsCal
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.ScrollIntoView(s, ctx, proxy.ElementParams{Selector: selector}); err != nil {
+	if err := api.ScrollIntoView(s, ctx, api.ElementParams{Selector: selector}); err != nil {
 		return nil, fmt.Errorf("failed to scroll into view: %w", err)
 	}
 
@@ -2297,7 +2297,7 @@ func (h *Handlers) browserWaitForURL(args map[string]interface{}) (*ToolsCallRes
 		return nil, fmt.Errorf("pattern is required")
 	}
 
-	timeout := proxy.DefaultTimeout
+	timeout := api.DefaultTimeout
 	if t, ok := args["timeout"].(float64); ok {
 		timeout = time.Duration(t) * time.Millisecond
 	}
@@ -2307,7 +2307,7 @@ func (h *Handlers) browserWaitForURL(args map[string]interface{}) (*ToolsCallRes
 	if err != nil {
 		return nil, err
 	}
-	url, err := proxy.WaitForURL(s, ctx, pattern, timeout)
+	url, err := api.WaitForURL(s, ctx, pattern, timeout)
 	if err != nil {
 		return nil, err
 	}
@@ -2326,7 +2326,7 @@ func (h *Handlers) browserWaitForLoad(args map[string]interface{}) (*ToolsCallRe
 		return nil, err
 	}
 
-	timeout := proxy.DefaultTimeout
+	timeout := api.DefaultTimeout
 	if t, ok := args["timeout"].(float64); ok {
 		timeout = time.Duration(t) * time.Millisecond
 	}
@@ -2336,7 +2336,7 @@ func (h *Handlers) browserWaitForLoad(args map[string]interface{}) (*ToolsCallRe
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.WaitForLoad(s, ctx, "complete", timeout); err != nil {
+	if err := api.WaitForLoad(s, ctx, "complete", timeout); err != nil {
 		return nil, err
 	}
 
@@ -2593,7 +2593,7 @@ func (h *Handlers) browserPDF(args map[string]interface{}) (*ToolsCallResult, er
 	if err != nil {
 		return nil, err
 	}
-	base64Data, err := proxy.PrintToPDF(s, ctx)
+	base64Data, err := api.PrintToPDF(s, ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to print PDF: %w", err)
 	}
@@ -2680,7 +2680,7 @@ func (h *Handlers) browserDblClick(args map[string]interface{}) (*ToolsCallResul
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.DblClick(s, ctx, proxy.ElementParams{Selector: selector}); err != nil {
+	if err := api.DblClick(s, ctx, api.ElementParams{Selector: selector}); err != nil {
 		return nil, fmt.Errorf("failed to double-click: %w", err)
 	}
 
@@ -2709,7 +2709,7 @@ func (h *Handlers) browserFocus(args map[string]interface{}) (*ToolsCallResult, 
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.FocusElement(s, ctx, proxy.ElementParams{Selector: selector}); err != nil {
+	if err := api.FocusElement(s, ctx, api.ElementParams{Selector: selector}); err != nil {
 		return nil, fmt.Errorf("failed to focus: %w", err)
 	}
 
@@ -2738,7 +2738,7 @@ func (h *Handlers) browserCount(args map[string]interface{}) (*ToolsCallResult, 
 	if err != nil {
 		return nil, err
 	}
-	count, err := proxy.GetCount(s, ctx, selector)
+	count, err := api.GetCount(s, ctx, selector)
 	if err != nil {
 		return nil, fmt.Errorf("failed to count: %w", err)
 	}
@@ -2768,7 +2768,7 @@ func (h *Handlers) browserIsEnabled(args map[string]interface{}) (*ToolsCallResu
 	if err != nil {
 		return nil, err
 	}
-	enabled, err := proxy.IsEnabled(s, ctx, proxy.ElementParams{Selector: selector})
+	enabled, err := api.IsEnabled(s, ctx, api.ElementParams{Selector: selector})
 	if err != nil {
 		return nil, fmt.Errorf("failed to check enabled: %w", err)
 	}
@@ -2798,7 +2798,7 @@ func (h *Handlers) browserIsChecked(args map[string]interface{}) (*ToolsCallResu
 	if err != nil {
 		return nil, err
 	}
-	checked, err := proxy.IsChecked(s, ctx, proxy.ElementParams{Selector: selector})
+	checked, err := api.IsChecked(s, ctx, api.ElementParams{Selector: selector})
 	if err != nil {
 		return nil, fmt.Errorf("failed to check checked state: %w", err)
 	}
@@ -2822,7 +2822,7 @@ func (h *Handlers) browserWaitForText(args map[string]interface{}) (*ToolsCallRe
 		return nil, fmt.Errorf("text is required")
 	}
 
-	timeout := proxy.DefaultTimeout
+	timeout := api.DefaultTimeout
 	if t, ok := args["timeout"].(float64); ok {
 		timeout = time.Duration(t) * time.Millisecond
 	}
@@ -2832,7 +2832,7 @@ func (h *Handlers) browserWaitForText(args map[string]interface{}) (*ToolsCallRe
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.WaitForText(s, ctx, text, timeout); err != nil {
+	if err := api.WaitForText(s, ctx, text, timeout); err != nil {
 		return nil, err
 	}
 
@@ -2855,7 +2855,7 @@ func (h *Handlers) browserWaitForFn(args map[string]interface{}) (*ToolsCallResu
 		return nil, fmt.Errorf("expression is required")
 	}
 
-	timeout := proxy.DefaultTimeout
+	timeout := api.DefaultTimeout
 	if t, ok := args["timeout"].(float64); ok {
 		timeout = time.Duration(t) * time.Millisecond
 	}
@@ -2865,7 +2865,7 @@ func (h *Handlers) browserWaitForFn(args map[string]interface{}) (*ToolsCallResu
 	if err != nil {
 		return nil, err
 	}
-	result, err := proxy.WaitForFunction(s, ctx, expression, timeout)
+	result, err := api.WaitForFunction(s, ctx, expression, timeout)
 	if err != nil {
 		return nil, err
 	}
@@ -2891,7 +2891,7 @@ func (h *Handlers) browserDialogAccept(args map[string]interface{}) (*ToolsCallR
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.DialogAccept(s, ctx, text); err != nil {
+	if err := api.DialogAccept(s, ctx, text); err != nil {
 		return nil, fmt.Errorf("failed to accept dialog: %w", err)
 	}
 
@@ -2919,7 +2919,7 @@ func (h *Handlers) browserDialogDismiss(args map[string]interface{}) (*ToolsCall
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.DialogDismiss(s, ctx); err != nil {
+	if err := api.DialogDismiss(s, ctx); err != nil {
 		return nil, fmt.Errorf("failed to dismiss dialog: %w", err)
 	}
 
@@ -2942,7 +2942,7 @@ func (h *Handlers) browserGetCookies(args map[string]interface{}) (*ToolsCallRes
 	if err != nil {
 		return nil, err
 	}
-	cookies, err := proxy.GetCookies(s, ctx)
+	cookies, err := api.GetCookies(s, ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get cookies: %w", err)
 	}
@@ -2993,7 +2993,7 @@ func (h *Handlers) browserSetCookie(args map[string]interface{}) (*ToolsCallResu
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.SetCookie(s, ctx, name, value, domain, path); err != nil {
+	if err := api.SetCookie(s, ctx, name, value, domain, path); err != nil {
 		return nil, fmt.Errorf("failed to set cookie: %w", err)
 	}
 
@@ -3018,7 +3018,7 @@ func (h *Handlers) browserDeleteCookies(args map[string]interface{}) (*ToolsCall
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.DeleteCookies(s, ctx, name); err != nil {
+	if err := api.DeleteCookies(s, ctx, name); err != nil {
 		return nil, fmt.Errorf("failed to delete cookies: %w", err)
 	}
 
@@ -3055,7 +3055,7 @@ func (h *Handlers) browserMouseMove(args map[string]interface{}) (*ToolsCallResu
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.MouseMove(s, ctx, int(x), int(y)); err != nil {
+	if err := api.MouseMove(s, ctx, int(x), int(y)); err != nil {
 		return nil, fmt.Errorf("failed to move mouse: %w", err)
 	}
 
@@ -3083,7 +3083,7 @@ func (h *Handlers) browserMouseDown(args map[string]interface{}) (*ToolsCallResu
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.MouseDown(s, ctx, button); err != nil {
+	if err := api.MouseDown(s, ctx, button); err != nil {
 		return nil, fmt.Errorf("failed to press mouse button: %w", err)
 	}
 
@@ -3111,7 +3111,7 @@ func (h *Handlers) browserMouseUp(args map[string]interface{}) (*ToolsCallResult
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.MouseUp(s, ctx, button); err != nil {
+	if err := api.MouseUp(s, ctx, button); err != nil {
 		return nil, fmt.Errorf("failed to release mouse button: %w", err)
 	}
 
@@ -3143,15 +3143,15 @@ func (h *Handlers) browserMouseClick(args map[string]interface{}) (*ToolsCallRes
 	x, hasX := args["x"].(float64)
 	y, hasY := args["y"].(float64)
 	if hasX && hasY {
-		if err := proxy.MouseClick(s, ctx, int(x), int(y), button); err != nil {
+		if err := api.MouseClick(s, ctx, int(x), int(y), button); err != nil {
 			return nil, fmt.Errorf("failed to click: %w", err)
 		}
 	} else {
 		// Click at current position (down+up only)
-		if err := proxy.MouseDown(s, ctx, button); err != nil {
+		if err := api.MouseDown(s, ctx, button); err != nil {
 			return nil, fmt.Errorf("failed to click: %w", err)
 		}
-		if err := proxy.MouseUp(s, ctx, button); err != nil {
+		if err := api.MouseUp(s, ctx, button); err != nil {
 			return nil, fmt.Errorf("failed to click: %w", err)
 		}
 	}
@@ -3195,7 +3195,7 @@ func (h *Handlers) browserDrag(args map[string]interface{}) (*ToolsCallResult, e
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.DragTo(s, ctx, proxy.ElementParams{Selector: source}, proxy.ElementParams{Selector: target}); err != nil {
+	if err := api.DragTo(s, ctx, api.ElementParams{Selector: source}, api.ElementParams{Selector: target}); err != nil {
 		return nil, fmt.Errorf("failed to drag: %w", err)
 	}
 
@@ -3232,7 +3232,7 @@ func (h *Handlers) browserSetViewport(args map[string]interface{}) (*ToolsCallRe
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.SetViewport(s, ctx, int(width), int(height), dpr); err != nil {
+	if err := api.SetViewport(s, ctx, int(width), int(height), dpr); err != nil {
 		return nil, fmt.Errorf("failed to set viewport: %w", err)
 	}
 
@@ -3260,7 +3260,7 @@ func (h *Handlers) browserGetViewport(args map[string]interface{}) (*ToolsCallRe
 	if err != nil {
 		return nil, err
 	}
-	result, err := proxy.EvalSimpleScript(s, ctx, "() => JSON.stringify({width: window.innerWidth, height: window.innerHeight, devicePixelRatio: window.devicePixelRatio})")
+	result, err := api.EvalSimpleScript(s, ctx, "() => JSON.stringify({width: window.innerWidth, height: window.innerHeight, devicePixelRatio: window.devicePixelRatio})")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get viewport: %w", err)
 	}
@@ -3280,7 +3280,7 @@ func (h *Handlers) browserGetWindow(args map[string]interface{}) (*ToolsCallResu
 	}
 
 	s := h.newSession()
-	win, err := proxy.GetWindow(s)
+	win, err := api.GetWindow(s)
 	if err != nil {
 		return nil, err
 	}
@@ -3316,7 +3316,7 @@ func (h *Handlers) browserSetWindow(args map[string]interface{}) (*ToolsCallResu
 	x, hasX := args["x"].(float64)
 	y, hasY := args["y"].(float64)
 
-	opts := proxy.SetWindowOpts{State: state}
+	opts := api.SetWindowOpts{State: state}
 	if hasWidth {
 		w := int(width)
 		opts.Width = &w
@@ -3334,7 +3334,7 @@ func (h *Handlers) browserSetWindow(args map[string]interface{}) (*ToolsCallResu
 		opts.Y = &yv
 	}
 
-	if err := proxy.SetWindow(h.launchResult.Port, h.launchResult.SessionID, opts); err != nil {
+	if err := api.SetWindow(h.launchResult.Port, h.launchResult.SessionID, opts); err != nil {
 		return nil, err
 	}
 
@@ -3378,7 +3378,7 @@ func (h *Handlers) browserEmulateMedia(args map[string]interface{}) (*ToolsCallR
 		return nil, err
 	}
 
-	if err := proxy.EmulateMedia(s, ctx, overrides); err != nil {
+	if err := api.EmulateMedia(s, ctx, overrides); err != nil {
 		return nil, fmt.Errorf("failed to emulate media: %w", err)
 	}
 
@@ -3420,7 +3420,7 @@ func (h *Handlers) browserSetGeolocation(args map[string]interface{}) (*ToolsCal
 		return nil, err
 	}
 
-	if err := proxy.SetGeolocation(s, ctx, latitude, longitude, accuracy); err != nil {
+	if err := api.SetGeolocation(s, ctx, latitude, longitude, accuracy); err != nil {
 		return nil, fmt.Errorf("failed to set geolocation: %w", err)
 	}
 
@@ -3448,7 +3448,7 @@ func (h *Handlers) browserSetContent(args map[string]interface{}) (*ToolsCallRes
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.SetContent(s, ctx, html); err != nil {
+	if err := api.SetContent(s, ctx, html); err != nil {
 		return nil, fmt.Errorf("failed to set content: %w", err)
 	}
 
@@ -3472,7 +3472,7 @@ func (h *Handlers) browserFrames(args map[string]interface{}) (*ToolsCallResult,
 		return nil, err
 	}
 
-	frames, err := proxy.ListFrames(s, ctx)
+	frames, err := api.ListFrames(s, ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get frames: %w", err)
 	}
@@ -3512,7 +3512,7 @@ func (h *Handlers) browserFrame(args map[string]interface{}) (*ToolsCallResult, 
 		return nil, err
 	}
 
-	frame, err := proxy.FindFrame(s, ctx, nameOrURL)
+	frame, err := api.FindFrame(s, ctx, nameOrURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find frame: %w", err)
 	}
@@ -3567,7 +3567,7 @@ func (h *Handlers) browserUpload(args map[string]interface{}) (*ToolsCallResult,
 	if err != nil {
 		return nil, err
 	}
-	if err := proxy.Upload(s, ctx, proxy.ElementParams{Selector: selector}, files); err != nil {
+	if err := api.Upload(s, ctx, api.ElementParams{Selector: selector}, files); err != nil {
 		return nil, fmt.Errorf("failed to set files: %w", err)
 	}
 
@@ -3589,13 +3589,13 @@ func (h *Handlers) browserRecordStart(args map[string]interface{}) (*ToolsCallRe
 		return nil, fmt.Errorf("already recording — stop it first")
 	}
 
-	opts := proxy.ParseRecordingOptions(args)
+	opts := api.ParseRecordingOptions(args)
 	if opts.Name == "" {
 		opts.Name = "record"
 	}
 	name := opts.Name
 
-	h.recorder = proxy.NewRecorder()
+	h.recorder = api.NewRecorder()
 	h.recorder.Start(opts)
 
 	// Subscribe to events and feed them to the recorder
@@ -3645,7 +3645,7 @@ func (h *Handlers) browserRecordStop(args map[string]interface{}) (*ToolsCallRes
 		return nil, fmt.Errorf("failed to stop recording: %w", err)
 	}
 
-	if err := proxy.WriteRecordToFile(zipData, path); err != nil {
+	if err := api.WriteRecordToFile(zipData, path); err != nil {
 		h.recorder = nil
 		return nil, fmt.Errorf("failed to write recording: %w", err)
 	}
@@ -3733,7 +3733,7 @@ func (h *Handlers) browserRecordStopChunk(args map[string]interface{}) (*ToolsCa
 		return nil, fmt.Errorf("failed to stop chunk: %w", err)
 	}
 
-	if err := proxy.WriteRecordToFile(zipData, path); err != nil {
+	if err := api.WriteRecordToFile(zipData, path); err != nil {
 		return nil, fmt.Errorf("failed to write chunk: %w", err)
 	}
 

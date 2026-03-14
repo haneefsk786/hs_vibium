@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/vibium/clicker/internal/mcp"
+	"github.com/vibium/clicker/internal/agent"
 	"github.com/vibium/clicker/internal/paths"
 	"github.com/vibium/clicker/internal/process"
 )
@@ -99,7 +99,7 @@ The server provides browser automation tools:
 
 				connectURL, connectHeaders := connectFromEnv()
 
-				server := mcp.NewServer(version, mcp.ServerOptions{
+				server := agent.NewServer(version, agent.ServerOptions{
 					ScreenshotDir:  screenshotDir,
 					ConnectURL:     connectURL,
 					ConnectHeaders: connectHeaders,

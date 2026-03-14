@@ -1,4 +1,4 @@
-package proxy
+package api
 
 import (
 	"fmt"
@@ -22,7 +22,7 @@ func (r *Router) handlePageNavigate(session *BrowserSession, cmd bidiCommand) {
 	}
 
 	wait, _ := cmd.Params["wait"].(string)
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	if err := Navigate(s, context, url, wait); err != nil {
 		r.sendError(session, cmd.ID, err)
 		return
@@ -34,7 +34,7 @@ func (r *Router) handlePageNavigate(session *BrowserSession, cmd bidiCommand) {
 	recorder := session.recorder
 	session.mu.Unlock()
 	if recorder != nil && recorder.IsRecording() {
-		ps := NewProxySession(r, session, context)
+		ps := NewAPISession(r, session, context)
 		CaptureRecordingScreenshot(ps, recorder, time.Now())
 		atomic.StoreInt32(&session.handlerScreenshot, 1)
 	}
@@ -50,7 +50,7 @@ func (r *Router) handlePageBack(session *BrowserSession, cmd bidiCommand) {
 		return
 	}
 
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	if err := GoBack(s, context); err != nil {
 		r.sendError(session, cmd.ID, err)
 		return
@@ -67,7 +67,7 @@ func (r *Router) handlePageForward(session *BrowserSession, cmd bidiCommand) {
 		return
 	}
 
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	if err := GoForward(s, context); err != nil {
 		r.sendError(session, cmd.ID, err)
 		return
@@ -85,7 +85,7 @@ func (r *Router) handlePageReload(session *BrowserSession, cmd bidiCommand) {
 	}
 
 	wait, _ := cmd.Params["wait"].(string)
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	if err := Reload(s, context, wait); err != nil {
 		r.sendError(session, cmd.ID, err)
 		return
@@ -102,7 +102,7 @@ func (r *Router) handlePageURL(session *BrowserSession, cmd bidiCommand) {
 		return
 	}
 
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	url, err := GetURL(s, context)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -120,7 +120,7 @@ func (r *Router) handlePageTitle(session *BrowserSession, cmd bidiCommand) {
 		return
 	}
 
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	title, err := GetTitle(s, context)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -138,7 +138,7 @@ func (r *Router) handlePageContent(session *BrowserSession, cmd bidiCommand) {
 		return
 	}
 
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	content, err := GetContent(s, context)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -168,7 +168,7 @@ func (r *Router) handlePageWaitForURL(session *BrowserSession, cmd bidiCommand) 
 		timeout = time.Duration(timeoutMs) * time.Millisecond
 	}
 
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	url, err := WaitForURL(s, context, pattern, timeout)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)
@@ -193,7 +193,7 @@ func (r *Router) handlePageWaitForLoad(session *BrowserSession, cmd bidiCommand)
 		timeout = time.Duration(timeoutMs) * time.Millisecond
 	}
 
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	if err := WaitForLoad(s, context, state, timeout); err != nil {
 		r.sendError(session, cmd.ID, err)
 		return
@@ -204,7 +204,7 @@ func (r *Router) handlePageWaitForLoad(session *BrowserSession, cmd bidiCommand)
 
 // waitForReadyState polls document.readyState until it matches the target state.
 func (r *Router) waitForReadyState(session *BrowserSession, context, targetState string, timeout time.Duration) error {
-	return WaitForReadyState(NewProxySession(r, session, context), context, targetState, timeout)
+	return WaitForReadyState(NewAPISession(r, session, context), context, targetState, timeout)
 }
 
 // ---------------------------------------------------------------------------

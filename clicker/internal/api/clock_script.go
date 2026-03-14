@@ -1,4 +1,4 @@
-package proxy
+package api
 
 // ClockScript is the JavaScript that installs a fake clock on `window.__vibiumClock`.
 // It overrides Date, setTimeout, setInterval, clearTimeout, clearInterval,

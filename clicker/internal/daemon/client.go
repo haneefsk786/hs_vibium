@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/vibium/clicker/internal/mcp"
+	"github.com/vibium/clicker/internal/agent"
 	"github.com/vibium/clicker/internal/paths"
 )
 
@@ -16,8 +16,8 @@ const (
 )
 
 // Call sends a tools/call request to the daemon and returns the result.
-func Call(toolName string, args map[string]interface{}) (*mcp.ToolsCallResult, error) {
-	params := mcp.ToolsCallParams{
+func Call(toolName string, args map[string]interface{}) (*agent.ToolsCallResult, error) {
+	params := agent.ToolsCallParams{
 		Name:      toolName,
 		Arguments: args,
 	}
@@ -42,7 +42,7 @@ func Call(toolName string, args map[string]interface{}) (*mcp.ToolsCallResult, e
 		return nil, fmt.Errorf("marshal result: %w", err)
 	}
 
-	var result mcp.ToolsCallResult
+	var result agent.ToolsCallResult
 	if err := json.Unmarshal(resultJSON, &result); err != nil {
 		return nil, fmt.Errorf("unmarshal result: %w", err)
 	}
@@ -96,7 +96,7 @@ func Shutdown() error {
 }
 
 // sendRequest sends a JSON-RPC request to the daemon socket and returns the response.
-func sendRequest(method string, params json.RawMessage) (*mcp.Response, error) {
+func sendRequest(method string, params json.RawMessage) (*agent.Response, error) {
 	socketPath, err := paths.GetSocketPath()
 	if err != nil {
 		return nil, fmt.Errorf("get socket path: %w", err)
@@ -108,7 +108,7 @@ func sendRequest(method string, params json.RawMessage) (*mcp.Response, error) {
 	}
 	defer conn.Close()
 
-	req := mcp.Request{
+	req := agent.Request{
 		JSONRPC: "2.0",
 		ID:      1,
 		Method:  method,
@@ -135,7 +135,7 @@ func sendRequest(method string, params json.RawMessage) (*mcp.Response, error) {
 		return nil, fmt.Errorf("daemon closed connection without response")
 	}
 
-	var resp mcp.Response
+	var resp agent.Response
 	if err := json.Unmarshal(scanner.Bytes(), &resp); err != nil {
 		return nil, fmt.Errorf("unmarshal response: %w", err)
 	}

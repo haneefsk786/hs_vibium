@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/vibium/clicker/internal/mcp"
+	"github.com/vibium/clicker/internal/agent"
 	"github.com/vibium/clicker/internal/process"
 )
 
@@ -19,7 +19,7 @@ type jsonEnvelope struct {
 // printResult prints a tool call result, respecting --json mode.
 // In JSON mode: {"ok":true,"result":"..."}
 // In normal mode: just the text content.
-func printResult(result *mcp.ToolsCallResult) {
+func printResult(result *agent.ToolsCallResult) {
 	if result == nil {
 		return
 	}
@@ -67,7 +67,7 @@ func printJSON(v interface{}) {
 }
 
 // extractText returns the first text content from a result.
-func extractText(result *mcp.ToolsCallResult) string {
+func extractText(result *agent.ToolsCallResult) string {
 	for _, c := range result.Content {
 		if c.Type == "text" {
 			return c.Text

@@ -1,4 +1,4 @@
-package proxy
+package api
 
 import (
 	"encoding/json"
@@ -120,7 +120,7 @@ func (r *Router) handleVibiumPageA11yTree(session *BrowserSession, cmd bidiComma
 		rootSelector = val
 	}
 
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	tree, err := A11yTree(s, context, interestingOnly, rootSelector)
 	if err != nil {
 		r.sendError(session, cmd.ID, err)

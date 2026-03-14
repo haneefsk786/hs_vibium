@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/vibium/clicker/internal/proxy"
+	"github.com/vibium/clicker/internal/api"
 )
 
 func newTypeCmd() *cobra.Command {
@@ -47,6 +47,6 @@ func newTypeCmd() *cobra.Command {
 			printResult(result)
 		},
 	}
-	cmd.Flags().Duration("timeout", proxy.DefaultTimeout, "Timeout for actionability checks (e.g., 5s, 30s)")
+	cmd.Flags().Duration("timeout", api.DefaultTimeout, "Timeout for actionability checks (e.g., 5s, 30s)")
 	return cmd
 }

@@ -811,7 +811,7 @@ describe('MCP Server: Recording', { timeout: 120000 }, () => {
       assert.strictEqual(events[0].type, 'context-options');
       assert.strictEqual(events[0].browserName, 'chromium');
 
-      // Verify before/after action events (unified with proxy path)
+      // Verify before/after action events (unified with API path)
       const beforeEvents = events.filter(e => e.type === 'before' && e.method !== 'group');
       assert.ok(beforeEvents.length > 0, 'Should have before events for actions');
       assert.ok(beforeEvents[0].callId, 'before event should have callId');

@@ -1,4 +1,4 @@
-package proxy
+package api
 
 // handleDialogAccept handles vibium:dialog.accept — accepts a user prompt (alert/confirm/prompt).
 func (r *Router) handleDialogAccept(session *BrowserSession, cmd bidiCommand) {

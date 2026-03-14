@@ -1,4 +1,4 @@
-package mcp
+package agent
 
 // GetToolSchemas returns the list of available MCP tools with their schemas.
 func GetToolSchemas() []Tool {

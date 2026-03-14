@@ -1,4 +1,4 @@
-package proxy
+package api
 
 import (
 	"encoding/json"
@@ -364,7 +364,7 @@ func buildSemanticFindAllScript() string {
 
 // waitForElementWithScript polls until an element is found using a custom script.
 func (r *Router) waitForElementWithScript(session *BrowserSession, context, script string, args []map[string]interface{}, timeout time.Duration) (*ElementInfo, error) {
-	return WaitForElementWithScript(NewProxySession(r, session, context), context, script, args, timeout)
+	return WaitForElementWithScript(NewAPISession(r, session, context), context, script, args, timeout)
 }
 
 // waitForElements polls until at least one matching element is found, then returns all.

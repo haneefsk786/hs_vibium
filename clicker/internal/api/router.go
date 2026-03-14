@@ -1,4 +1,4 @@
-package proxy
+package api
 
 import (
 	"encoding/json"
@@ -270,7 +270,7 @@ func (r *Router) dispatch(session *BrowserSession, cmd bidiCommand, handler vibi
 			handlerCapturedSS := atomic.CompareAndSwapInt32(&session.handlerScreenshot, 1, 0)
 			if opts.Screenshots && !handlerCapturedSS && atomic.CompareAndSwapInt32(&session.screenshotInFlight, 0, 1) {
 				context, _ := cmd.Params["context"].(string)
-				ps := NewProxySession(r, session, context)
+				ps := NewAPISession(r, session, context)
 				CaptureRecordingScreenshot(ps, recorder, endTime)
 				atomic.StoreInt32(&session.screenshotInFlight, 0)
 			}

@@ -1,4 +1,4 @@
-package proxy
+package api
 
 import (
 	"encoding/json"
@@ -27,7 +27,7 @@ func (r *Router) resolveContext(session *BrowserSession, params map[string]inter
 
 // evalSimpleScript runs a no-argument script.callFunction and returns the string result.
 func (r *Router) evalSimpleScript(session *BrowserSession, context, fn string) (string, error) {
-	return EvalSimpleScript(NewProxySession(r, session, context), context, fn)
+	return EvalSimpleScript(NewAPISession(r, session, context), context, fn)
 }
 
 // checkBidiError checks if a BiDi response is an error and returns it.
@@ -71,7 +71,7 @@ func parseScriptResult(resp json.RawMessage) (string, error) {
 
 // resolveElementRef finds an element and returns its BiDi sharedId.
 func (r *Router) resolveElementRef(session *BrowserSession, context string, ep ElementParams) (string, error) {
-	return ResolveElementRef(NewProxySession(r, session, context), context, ep)
+	return ResolveElementRef(NewAPISession(r, session, context), context, ep)
 }
 
 // buildRefFindScript builds a JS function that finds an element and returns it directly
@@ -263,7 +263,7 @@ func buildActionFindScript(ep ElementParams) (string, []map[string]interface{}) 
 // resolveElement finds an element using the given params, polling until found or timeout.
 // It returns the element's info with updated bounding box after scrolling into view.
 func (r *Router) resolveElement(session *BrowserSession, context string, ep ElementParams) (*ElementInfo, error) {
-	s := NewProxySession(r, session, context)
+	s := NewAPISession(r, session, context)
 	return ResolveElement(s, context, ep)
 }
 

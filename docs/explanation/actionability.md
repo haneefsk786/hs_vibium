@@ -202,12 +202,12 @@ The client code becomes trivial — send a command, get back success or a timeou
 
 ## Code References
 
-The actionability implementation lives in `clicker/internal/proxy/`:
+The actionability implementation lives in `clicker/internal/api/`:
 
 | File | What's there |
 |------|-------------|
 | `actionability.go` | Check definitions, `buildActionableScript()`, `actionabilityCheckBody()`, `WaitForActionable()`, `resolveWithActionability()` |
-| `handlers_interaction.go` | Exported action functions (`Click`, `Hover`, `Fill`, `TypeInto`, `SelectOption`, `DragTo`, `Tap`, `ScrollIntoView`, etc.) and their proxy command handlers |
+| `handlers_interaction.go` | Exported action functions (`Click`, `Hover`, `Fill`, `TypeInto`, `SelectOption`, `DragTo`, `Tap`, `ScrollIntoView`, etc.) and their API command handlers |
 | `handlers_elements.go` | Element finding (`buildFindScript`, `semanticMatchesHelper`, `pickBest`, CSS and semantic find scripts) |
 | `helpers.go` | `ElementParams` struct, `ExtractElementParams()` |
 | `router.go` | `DefaultTimeout` (30s), command routing |

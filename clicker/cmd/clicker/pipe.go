@@ -10,7 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/vibium/clicker/internal/browser"
-	"github.com/vibium/clicker/internal/proxy"
+	"github.com/vibium/clicker/internal/api"
 )
 
 func newPipeCmd() *cobra.Command {
@@ -65,8 +65,8 @@ func runPipe(connectURL string, connectHeaders http.Header) {
 	// doesn't corrupt the protocol stream.
 	os.Stdout = os.Stderr
 
-	router := proxy.NewRouter(headless, connectURL, connectHeaders)
-	client := proxy.NewPipeClientConn(protocolOut)
+	router := api.NewRouter(headless, connectURL, connectHeaders)
+	client := api.NewPipeClientConn(protocolOut)
 
 	// OnClientConnect blocks until Chrome is launched, BiDi connected,
 	// and events subscribed — the client won't see messages until it's ready.

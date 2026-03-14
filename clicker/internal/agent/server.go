@@ -1,6 +1,6 @@
 // Package mcp implements the Model Context Protocol (MCP) server.
 // It provides a JSON-RPC 2.0 interface over stdio for LLM agents.
-package mcp
+package agent
 
 import (
 	"bufio"

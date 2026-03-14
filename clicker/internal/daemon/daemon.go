@@ -10,14 +10,14 @@ import (
 	"time"
 
 	"github.com/vibium/clicker/internal/log"
-	"github.com/vibium/clicker/internal/mcp"
+	"github.com/vibium/clicker/internal/agent"
 	"github.com/vibium/clicker/internal/paths"
 )
 
 // Daemon manages a long-lived browser session accessible via a Unix socket.
 type Daemon struct {
 	listener     net.Listener
-	handlers     *mcp.Handlers
+	handlers     *agent.Handlers
 	mu           sync.Mutex // serializes handler access
 	version      string
 	startTime    time.Time
@@ -41,7 +41,7 @@ type Options struct {
 // New creates a new Daemon instance.
 func New(opts Options) *Daemon {
 	return &Daemon{
-		handlers:     mcp.NewHandlers(opts.ScreenshotDir, opts.Headless, opts.ConnectURL, opts.ConnectHeaders),
+		handlers:     agent.NewHandlers(opts.ScreenshotDir, opts.Headless, opts.ConnectURL, opts.ConnectHeaders),
 		version:      opts.Version,
 		idleTimeout:  opts.IdleTimeout,
 		startTime:    time.Now(),
