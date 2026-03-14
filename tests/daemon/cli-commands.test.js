@@ -37,7 +37,7 @@ function stopDaemon() {
 describe('Daemon CLI: Navigation commands', () => {
   before(() => {
     stopDaemon();
-    clicker('daemon start -d --headless');
+    clicker('daemon start --headless');
     clicker('go https://example.com');
   });
 
@@ -67,7 +67,7 @@ describe('Daemon CLI: Navigation commands', () => {
 describe('Daemon CLI: Element state commands', () => {
   before(() => {
     stopDaemon();
-    clicker('daemon start -d --headless');
+    clicker('daemon start --headless');
     clicker('go https://example.com');
   });
 
@@ -97,7 +97,7 @@ describe('Daemon CLI: Element state commands', () => {
 describe('Daemon CLI: Accessibility and search commands', () => {
   before(() => {
     stopDaemon();
-    clicker('daemon start -d --headless');
+    clicker('daemon start --headless');
     clicker('go https://example.com');
   });
 
@@ -135,7 +135,7 @@ describe('Daemon CLI: Accessibility and search commands', () => {
 describe('Daemon CLI: Waiting commands', () => {
   before(() => {
     stopDaemon();
-    clicker('daemon start -d --headless');
+    clicker('daemon start --headless');
     clicker('go https://example.com');
   });
 
@@ -167,7 +167,7 @@ describe('Daemon CLI: Waiting commands', () => {
 describe('Daemon CLI: Interaction commands', () => {
   before(() => {
     stopDaemon();
-    clicker('daemon start -d --headless');
+    clicker('daemon start --headless');
   });
 
   after(() => {
@@ -222,7 +222,7 @@ describe('Daemon CLI: Screenshot --full-page', () => {
 
   before(() => {
     stopDaemon();
-    clicker('daemon start -d --headless');
+    clicker('daemon start --headless');
     clicker('go https://example.com');
   });
 
@@ -251,7 +251,7 @@ describe('Daemon CLI: Screenshot --full-page', () => {
 describe('Daemon CLI: quit command', () => {
   before(() => {
     stopDaemon();
-    clicker('daemon start -d --headless');
+    clicker('daemon start --headless');
     clicker('go https://example.com');
   });
 

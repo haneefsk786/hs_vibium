@@ -33,7 +33,7 @@ function stopDaemon() {
 describe('Daemon: Rapid sequential commands', () => {
   before(() => {
     stopDaemon();
-    clicker('daemon start -d --headless');
+    clicker('daemon start --headless');
   });
 
   after(() => {
@@ -69,7 +69,7 @@ describe('Daemon: Rapid sequential commands', () => {
 describe('Daemon: Error recovery', () => {
   before(() => {
     stopDaemon();
-    clicker('daemon start -d --headless');
+    clicker('daemon start --headless');
   });
 
   after(() => {

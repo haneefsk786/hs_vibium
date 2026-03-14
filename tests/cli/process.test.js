@@ -65,8 +65,8 @@ describe('CLI: Process Cleanup', () => {
     // Ensure clean state: daemon stop waits for process exit
     try { execSync(`${VIBIUM} daemon stop`, { encoding: 'utf-8', timeout: 10000 }); } catch {}
 
-    // Start a fresh daemon (daemon start -d polls for socket availability)
-    execSync(`${VIBIUM} daemon start -d --headless`, { encoding: 'utf-8', timeout: 30000 });
+    // Start a fresh daemon (daemon start polls for socket availability)
+    execSync(`${VIBIUM} daemon start --headless`, { encoding: 'utf-8', timeout: 30000 });
 
     // Navigate to launch the browser
     execSync(`${VIBIUM} go https://example.com`, {

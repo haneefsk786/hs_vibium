@@ -85,7 +85,7 @@ describe('Daemon CLI: Recording', () => {
 
   before(() => {
     stopDaemon();
-    clicker('daemon start -d --headless');
+    clicker('daemon start --headless');
     clicker('go https://example.com');
   });
 

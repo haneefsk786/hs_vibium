@@ -285,7 +285,7 @@ cd clicker/bin
 ```bash
 cd clicker/bin
 ./vibium daemon start    # Start daemon in foreground
-./vibium daemon start -d # Start daemon in background
+./vibium daemon start    # Start daemon in background
 ./vibium daemon status   # Show daemon status
 ./vibium daemon stop     # Stop the daemon
 ```

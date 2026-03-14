@@ -33,7 +33,7 @@ function stopDaemon() {
 describe('Daemon: Find @refs workflow', () => {
   before(() => {
     stopDaemon();
-    clicker('daemon start -d --headless');
+    clicker('daemon start --headless');
     clicker('go https://example.com');
   });
 

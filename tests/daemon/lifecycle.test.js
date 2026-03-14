@@ -48,8 +48,8 @@ describe('Daemon: Lifecycle', () => {
     assert.match(result, /not running/i, 'Should report not running');
   });
 
-  test('daemon start -d starts background daemon', () => {
-    const result = clicker('daemon start -d --headless');
+  test('daemon start starts background daemon', () => {
+    const result = clicker('daemon start --headless');
     assert.match(result, /started|pid/i, 'Should confirm daemon started');
 
     // Verify status
@@ -72,7 +72,7 @@ describe('Daemon: Multi-step workflow', () => {
   before(() => {
     stopDaemon();
     // Start daemon explicitly for this test suite
-    clicker('daemon start -d --headless');
+    clicker('daemon start --headless');
   });
 
   after(() => {
