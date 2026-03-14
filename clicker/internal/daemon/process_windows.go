@@ -4,8 +4,8 @@ package daemon
 
 import "os"
 
-// processExists checks if a process with the given PID exists.
-func processExists(pid int) bool {
+// ProcessExists checks if a process with the given PID exists.
+func ProcessExists(pid int) bool {
 	p, err := os.FindProcess(pid)
 	if err != nil {
 		return false

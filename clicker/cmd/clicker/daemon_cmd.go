@@ -90,9 +90,23 @@ func newDaemonStopCmd() *cobra.Command {
 				return
 			}
 
+			// Read PID before sending shutdown so we can wait for the process to exit
+			pid, _ := daemon.ReadPID()
+
 			if err := daemon.Shutdown(); err != nil {
 				fmt.Fprintf(os.Stderr, "Error stopping daemon: %v\n", err)
 				os.Exit(1)
+			}
+
+			// Wait for the daemon process to fully exit (including Chrome cleanup)
+			if pid > 0 {
+				deadline := time.Now().Add(10 * time.Second)
+				for time.Now().Before(deadline) {
+					if !daemon.ProcessExists(pid) {
+						break
+					}
+					time.Sleep(100 * time.Millisecond)
+				}
 			}
 
 			fmt.Println("Daemon stopped.")

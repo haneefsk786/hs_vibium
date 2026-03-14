@@ -34,4 +34,5 @@ Power users can override defaults (headless mode, custom paths, etc.) when neede
 
 - Prioritize bug fixes over new features
 - Run tests before committing: `make test`
+- Always fix flaky tests immediately when they show up — never dismiss them as "pre-existing"
 - When adding new command line options to the vibium binary, add a simple example and sample output (or short description)

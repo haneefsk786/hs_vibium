@@ -48,6 +48,17 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+/**
+ * Poll until predicate returns true, or timeout.
+ */
+async function waitUntil(fn, { timeout = 8000, interval = 500 } = {}) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    if (fn()) return;
+    await sleep(interval);
+  }
+}
+
 describe('CLI: Process Cleanup', () => {
   test('daemon stop cleans up Chrome', async () => {
     // Ensure clean state: stop any existing daemon and wait
@@ -69,8 +80,11 @@ describe('CLI: Process Cleanup', () => {
     // Stop daemon — should clean up Chrome
     execSync(`${VIBIUM} daemon stop`, { encoding: 'utf-8', timeout: 10000 });
 
-    // Give processes time to exit
-    await sleep(2000);
+    // Poll until Chrome processes are gone (daemon cleanup is async)
+    await waitUntil(() => {
+      const remaining = [...pidsBefore].filter(pid => getClickerChromePids().has(pid));
+      return remaining.length === 0;
+    });
 
     const pidsAfter = getClickerChromePids();
 

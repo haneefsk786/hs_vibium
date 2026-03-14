@@ -72,7 +72,7 @@ func CleanStale() {
 		return
 	}
 
-	if processExists(pid) {
+	if ProcessExists(pid) {
 		return
 	}
 

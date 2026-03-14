@@ -4,8 +4,8 @@ package daemon
 
 import "syscall"
 
-// processExists checks if a process with the given PID exists.
-func processExists(pid int) bool {
+// ProcessExists checks if a process with the given PID exists.
+func ProcessExists(pid int) bool {
 	err := syscall.Kill(pid, 0)
 	return err == nil || err == syscall.EPERM
 }

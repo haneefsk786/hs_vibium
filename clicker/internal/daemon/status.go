@@ -15,7 +15,7 @@ func IsRunning() bool {
 		return false
 	}
 
-	if !processExists(pid) {
+	if !ProcessExists(pid) {
 		return false
 	}
 
