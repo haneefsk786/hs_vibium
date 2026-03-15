@@ -33,6 +33,84 @@ async function main() {
 main()
 ```
 
+<details>
+<summary>Sync JS</summary>
+
+```javascript
+const { browser } = require('vibium/sync')
+
+const bro = browser.start()
+const vibe = bro.page()
+
+vibe.context.recording.start({ screenshots: true })
+
+vibe.go('https://example.com')
+vibe.find('a').click()
+
+vibe.context.recording.stop({ path: 'record.zip' })
+bro.stop()
+```
+
+</details>
+
+<details>
+<summary>Async Python</summary>
+
+```python
+import asyncio
+from vibium.async_api import browser
+
+async def main():
+    bro = await browser.start()
+    vibe = await bro.page()
+
+    await vibe.context.recording.start(screenshots=True)
+
+    await vibe.go('https://example.com')
+    await vibe.find('a').click()
+
+    await vibe.context.recording.stop(path='record.zip')
+    await bro.stop()
+
+asyncio.run(main())
+```
+
+</details>
+
+<details>
+<summary>Sync Python</summary>
+
+```python
+from vibium import browser
+
+bro = browser.start()
+vibe = bro.page()
+
+vibe.context.recording.start(screenshots=True)
+
+vibe.go('https://example.com')
+vibe.find('a').click()
+
+vibe.context.recording.stop(path='record.zip')
+bro.stop()
+```
+
+</details>
+
+<details>
+<summary>CLI</summary>
+
+```bash
+vibium record start --screenshots
+
+vibium go https://example.com
+vibium click 'a'
+
+vibium record stop -o record.zip
+```
+
+</details>
+
 Open `record.zip` in [Record Player](https://player.vibium.dev) to see a timeline of screenshots and actions.
 
 ---
@@ -62,6 +140,81 @@ async function main() {
 
 main()
 ```
+
+<details>
+<summary>Sync JS</summary>
+
+```javascript
+const { browser } = require('vibium/sync')
+
+const bro = browser.start()
+const ctx = bro.newContext()
+const vibe = ctx.newPage()
+
+ctx.recording.start({ name: 'my-session' })
+
+vibe.go('https://example.com')
+vibe.find('a').click()
+
+const zip = ctx.recording.stop()
+require('fs').writeFileSync('record.zip', zip)
+
+bro.stop()
+```
+
+</details>
+
+<details>
+<summary>Async Python</summary>
+
+```python
+import asyncio
+from vibium.async_api import browser
+
+async def main():
+    bro = await browser.start()
+    ctx = await bro.new_context()
+    vibe = await ctx.new_page()
+
+    await ctx.recording.start(name='my-session')
+
+    await vibe.go('https://example.com')
+    await vibe.find('a').click()
+
+    data = await ctx.recording.stop()
+    with open('record.zip', 'wb') as f:
+        f.write(data)
+
+    await bro.stop()
+
+asyncio.run(main())
+```
+
+</details>
+
+<details>
+<summary>Sync Python</summary>
+
+```python
+from vibium import browser
+
+bro = browser.start()
+ctx = bro.new_context()
+vibe = ctx.new_page()
+
+ctx.recording.start(name='my-session')
+
+vibe.go('https://example.com')
+vibe.find('a').click()
+
+data = ctx.recording.stop()
+with open('record.zip', 'wb') as f:
+    f.write(data)
+
+bro.stop()
+```
+
+</details>
 
 Use an explicit context when you need multiple pages in the same recording, or when you want to configure context options (viewport, locale, etc.). Use `page.context` when you just want to record a single page quickly.
 
@@ -108,6 +261,66 @@ await vibe.find('#input').fill('hello')     // recorded as Element.fill
 await ctx.recording.stop({ path: 'record.zip' })
 ```
 
+<details>
+<summary>Sync JS</summary>
+
+```javascript
+ctx.recording.start({ screenshots: true })
+
+vibe.go('https://example.com')       // recorded as Page.navigate
+vibe.find('#btn').click()             // recorded as Element.click
+vibe.find('#input').fill('hello')     // recorded as Element.fill
+
+ctx.recording.stop({ path: 'record.zip' })
+```
+
+</details>
+
+<details>
+<summary>Async Python</summary>
+
+```python
+await ctx.recording.start(screenshots=True)
+
+await vibe.go('https://example.com')       # recorded as Page.navigate
+await vibe.find('#btn').click()             # recorded as Element.click
+await vibe.find('#input').fill('hello')     # recorded as Element.fill
+
+await ctx.recording.stop(path='record.zip')
+```
+
+</details>
+
+<details>
+<summary>Sync Python</summary>
+
+```python
+ctx.recording.start(screenshots=True)
+
+vibe.go('https://example.com')       # recorded as Page.navigate
+vibe.find('#btn').click()             # recorded as Element.click
+vibe.find('#input').fill('hello')     # recorded as Element.fill
+
+ctx.recording.stop(path='record.zip')
+```
+
+</details>
+
+<details>
+<summary>CLI</summary>
+
+```bash
+vibium record start --screenshots
+
+vibium go https://example.com
+vibium click '#btn'
+vibium fill '#input' 'hello'
+
+vibium record stop -o record.zip
+```
+
+</details>
+
 To also record the raw BiDi protocol commands sent to the browser (e.g. `input.performActions`, `script.callFunction`), enable `bidi`:
 
 ```javascript
@@ -137,6 +350,90 @@ await ctx.recording.stopGroup()
 
 await ctx.recording.stop({ path: 'record.zip' })
 ```
+
+<details>
+<summary>Sync JS</summary>
+
+```javascript
+ctx.recording.start({ screenshots: true })
+vibe.go('https://example.com')
+
+ctx.recording.startGroup('fill login form')
+vibe.find('#username').fill('alice')
+vibe.find('#password').fill('secret')
+ctx.recording.stopGroup()
+
+ctx.recording.startGroup('submit')
+vibe.find('button[type="submit"]').click()
+ctx.recording.stopGroup()
+
+ctx.recording.stop({ path: 'record.zip' })
+```
+
+</details>
+
+<details>
+<summary>Async Python</summary>
+
+```python
+await ctx.recording.start(screenshots=True)
+await vibe.go('https://example.com')
+
+await ctx.recording.start_group('fill login form')
+await vibe.find('#username').fill('alice')
+await vibe.find('#password').fill('secret')
+await ctx.recording.stop_group()
+
+await ctx.recording.start_group('submit')
+await vibe.find('button[type="submit"]').click()
+await ctx.recording.stop_group()
+
+await ctx.recording.stop(path='record.zip')
+```
+
+</details>
+
+<details>
+<summary>Sync Python</summary>
+
+```python
+ctx.recording.start(screenshots=True)
+vibe.go('https://example.com')
+
+ctx.recording.start_group('fill login form')
+vibe.find('#username').fill('alice')
+vibe.find('#password').fill('secret')
+ctx.recording.stop_group()
+
+ctx.recording.start_group('submit')
+vibe.find('button[type="submit"]').click()
+ctx.recording.stop_group()
+
+ctx.recording.stop(path='record.zip')
+```
+
+</details>
+
+<details>
+<summary>CLI</summary>
+
+```bash
+vibium record start --screenshots
+vibium go https://example.com
+
+vibium record group start 'fill login form'
+vibium fill '#username' 'alice'
+vibium fill '#password' 'secret'
+vibium record group stop
+
+vibium record group start 'submit'
+vibium click 'button[type="submit"]'
+vibium record group stop
+
+vibium record stop -o record.zip
+```
+
+</details>
 
 Groups can be nested:
 
@@ -177,6 +474,94 @@ const dashboardZip = await ctx.recording.stopChunk({ path: 'dashboard.zip' })
 await ctx.recording.stop()
 ```
 
+<details>
+<summary>Sync JS</summary>
+
+```javascript
+ctx.recording.start({ screenshots: true })
+
+// First chunk: login
+vibe.go('https://example.com/login')
+vibe.find('#username').fill('alice')
+ctx.recording.stopChunk({ path: 'login.zip' })
+
+// Second chunk: dashboard
+ctx.recording.startChunk({ name: 'dashboard' })
+vibe.go('https://example.com/dashboard')
+ctx.recording.stopChunk({ path: 'dashboard.zip' })
+
+// Final stop
+ctx.recording.stop()
+```
+
+</details>
+
+<details>
+<summary>Async Python</summary>
+
+```python
+await ctx.recording.start(screenshots=True)
+
+# First chunk: login
+await vibe.go('https://example.com/login')
+await vibe.find('#username').fill('alice')
+await ctx.recording.stop_chunk(path='login.zip')
+
+# Second chunk: dashboard
+await ctx.recording.start_chunk(name='dashboard')
+await vibe.go('https://example.com/dashboard')
+await ctx.recording.stop_chunk(path='dashboard.zip')
+
+# Final stop
+await ctx.recording.stop()
+```
+
+</details>
+
+<details>
+<summary>Sync Python</summary>
+
+```python
+ctx.recording.start(screenshots=True)
+
+# First chunk: login
+vibe.go('https://example.com/login')
+vibe.find('#username').fill('alice')
+ctx.recording.stop_chunk(path='login.zip')
+
+# Second chunk: dashboard
+ctx.recording.start_chunk(name='dashboard')
+vibe.go('https://example.com/dashboard')
+ctx.recording.stop_chunk(path='dashboard.zip')
+
+# Final stop
+ctx.recording.stop()
+```
+
+</details>
+
+<details>
+<summary>CLI</summary>
+
+```bash
+vibium record start --screenshots
+
+# First chunk: login
+vibium go https://example.com/login
+vibium fill '#username' 'alice'
+vibium record chunk stop -o login.zip
+
+# Second chunk: dashboard
+vibium record chunk start --name dashboard
+vibium go https://example.com/dashboard
+vibium record chunk stop -o dashboard.zip
+
+# Final stop
+vibium record stop
+```
+
+</details>
+
 ---
 
 ## Viewing Recordings
@@ -196,23 +581,7 @@ The viewer shows:
 
 ## CLI Usage
 
-In daemon mode, you can start and stop recordings from the command line:
-
-```bash
-# Start recording with screenshots
-vibium record start --screenshots --snapshots --name my-session
-
-# Do some work (navigate, click, etc.)
-vibium go https://example.com
-vibium click '#btn'
-
-# Stop and save the recording
-vibium record stop -o record.zip
-
-# View it at https://player.vibium.dev
-```
-
-CLI recording uses the daemon, which is automatically started when needed.
+All recording features are available from the command line — see the CLI examples in the collapsible blocks above. CLI recording uses the daemon, which is automatically started when needed.
 
 ---
 
