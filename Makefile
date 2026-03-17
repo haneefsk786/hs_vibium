@@ -139,7 +139,7 @@ serve: build-go
 # Build everything and run all tests: make test
 test: build install-browser
 	@START_TIME=$$(date +%s); \
-	"$(MAKE)" test-cli test-js test-mcp test-python test-cleanup; \
+	"$(MAKE)" test-cli test-cleanup test-js test-cleanup test-mcp test-cleanup test-python test-cleanup; \
 	EXIT=$$?; \
 	END_TIME=$$(date +%s); \
 	ELAPSED=$$((END_TIME - START_TIME)); \

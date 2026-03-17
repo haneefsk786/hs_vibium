@@ -58,9 +58,9 @@ export class VibiumProcess {
       const timeout = setTimeout(() => {
         if (!resolved) {
           resolved = true;
-          reject(new TimeoutError('vibium', 30000, 'waiting for vibium ready signal'));
+          reject(new TimeoutError('vibium', 60000, 'waiting for vibium ready signal'));
         }
-      }, 30000);
+      }, 60000);
 
       const handleData = (data: Buffer) => {
         buffer += data.toString();
