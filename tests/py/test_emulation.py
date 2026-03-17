@@ -40,14 +40,14 @@ async def test_set_content_with_title(async_page, test_server):
 
 async def test_emulate_media_dark(async_page, test_server):
     await async_page.go(test_server)
-    await async_page.emulate_media(colorScheme="dark")
+    await async_page.emulate_media(color_scheme="dark")
     result = await async_page.evaluate("matchMedia('(prefers-color-scheme: dark)').matches")
     assert result is True
 
 
 async def test_emulate_media_light(async_page, test_server):
     await async_page.go(test_server)
-    await async_page.emulate_media(colorScheme="light")
+    await async_page.emulate_media(color_scheme="light")
     result = await async_page.evaluate("matchMedia('(prefers-color-scheme: light)').matches")
     assert result is True
 
@@ -61,14 +61,14 @@ async def test_emulate_media_print(async_page, test_server):
 
 async def test_emulate_media_reduced_motion(async_page, test_server):
     await async_page.go(test_server)
-    await async_page.emulate_media(reducedMotion="reduce")
+    await async_page.emulate_media(reduced_motion="reduce")
     result = await async_page.evaluate("matchMedia('(prefers-reduced-motion: reduce)').matches")
     assert result is True
 
 
 async def test_emulate_media_forced_colors(async_page, test_server):
     await async_page.go(test_server)
-    await async_page.emulate_media(forcedColors="active")
+    await async_page.emulate_media(forced_colors="active")
     result = await async_page.evaluate("matchMedia('(forced-colors: active)').matches")
     assert result is True
 
@@ -82,11 +82,11 @@ async def test_emulate_media_contrast(async_page, test_server):
 
 async def test_emulate_media_reset(async_page, test_server):
     await async_page.go(test_server)
-    await async_page.emulate_media(colorScheme="dark")
+    await async_page.emulate_media(color_scheme="dark")
     result = await async_page.evaluate("matchMedia('(prefers-color-scheme: dark)').matches")
     assert result is True
     # Reset
-    await async_page.emulate_media(colorScheme="light")
+    await async_page.emulate_media(color_scheme="light")
     result = await async_page.evaluate("matchMedia('(prefers-color-scheme: light)').matches")
     assert result is True
 

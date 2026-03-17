@@ -626,11 +626,28 @@ class Page:
         """Get the current viewport size."""
         return await self._client.send("vibium:page.viewport", {"context": self._context_id})
 
-    async def emulate_media(self, **opts: Any) -> None:
+    async def emulate_media(
+        self,
+        *,
+        media: Optional[str] = None,
+        color_scheme: Optional[str] = None,
+        reduced_motion: Optional[str] = None,
+        forced_colors: Optional[str] = None,
+        contrast: Optional[str] = None,
+    ) -> None:
         """Override CSS media features."""
-        await self._client.send("vibium:page.emulateMedia", {
-            "context": self._context_id, **opts,
-        })
+        params: Dict[str, Any] = {"context": self._context_id}
+        if media is not None:
+            params["media"] = media
+        if color_scheme is not None:
+            params["colorScheme"] = color_scheme
+        if reduced_motion is not None:
+            params["reducedMotion"] = reduced_motion
+        if forced_colors is not None:
+            params["forcedColors"] = forced_colors
+        if contrast is not None:
+            params["contrast"] = contrast
+        await self._client.send("vibium:page.emulateMedia", params)
 
     async def set_content(self, html: str) -> None:
         """Replace the page HTML content."""

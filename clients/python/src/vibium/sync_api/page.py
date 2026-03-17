@@ -228,8 +228,22 @@ class Page:
     def viewport(self) -> Dict[str, int]:
         return self._loop.run(self._async.viewport())
 
-    def emulate_media(self, **opts: Any) -> None:
-        self._loop.run(self._async.emulate_media(**opts))
+    def emulate_media(
+        self,
+        *,
+        media: Optional[str] = None,
+        color_scheme: Optional[str] = None,
+        reduced_motion: Optional[str] = None,
+        forced_colors: Optional[str] = None,
+        contrast: Optional[str] = None,
+    ) -> None:
+        self._loop.run(self._async.emulate_media(
+            media=media,
+            color_scheme=color_scheme,
+            reduced_motion=reduced_motion,
+            forced_colors=forced_colors,
+            contrast=contrast,
+        ))
 
     def set_content(self, html: str) -> None:
         self._loop.run(self._async.set_content(html))
