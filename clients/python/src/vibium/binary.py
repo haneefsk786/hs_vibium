@@ -11,10 +11,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-
-class VibiumNotFoundError(Exception):
-    """Raised when the vibium binary cannot be found."""
-    pass
+from .errors import VibiumNotFoundError, BrowserCrashedError
 
 
 def get_platform_package_name() -> str:
@@ -216,7 +213,7 @@ class VibiumProcess:
                 if not line_bytes:
                     # EOF — process died
                     stderr_bytes = await process.stderr.read() if process.stderr else b""  # type: ignore[union-attr]
-                    raise RuntimeError(f"Vibium failed to start: {stderr_bytes.decode(errors='replace')}")
+                    raise BrowserCrashedError(f"Vibium failed to start: {stderr_bytes.decode(errors='replace')}")
                 line = line_bytes.decode().strip()
                 if not line:
                     continue
@@ -230,7 +227,7 @@ class VibiumProcess:
                 pre_ready_lines.append(line)
         except asyncio.TimeoutError:
             process.kill()
-            raise RuntimeError("Vibium failed to start: timed out waiting for ready signal")
+            raise BrowserCrashedError("Vibium failed to start: timed out waiting for ready signal")
 
         instance = cls(process)
         instance._pre_ready_lines = pre_ready_lines

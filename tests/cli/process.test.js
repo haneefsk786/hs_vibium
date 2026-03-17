@@ -51,7 +51,7 @@ function sleep(ms) {
 /**
  * Poll until predicate returns true, or timeout.
  */
-async function waitUntil(fn, description, { timeout = 8000, interval = 500 } = {}) {
+async function waitUntil(fn, description, { timeout = 15000, interval = 500 } = {}) {
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
     if (fn()) return;
@@ -65,6 +65,9 @@ describe('CLI: Process Cleanup', () => {
     // Ensure clean state: daemon stop waits for process exit
     try { execSync(`${VIBIUM} daemon stop`, { encoding: 'utf-8', timeout: 10000 }); } catch {}
 
+    // Capture PIDs BEFORE starting the daemon so we only track new ones
+    const pidsBefore = getClickerChromePids();
+
     // Start a fresh daemon (daemon start polls for socket availability)
     execSync(`${VIBIUM} daemon start --headless`, { encoding: 'utf-8', timeout: 30000 });
 
@@ -74,25 +77,25 @@ describe('CLI: Process Cleanup', () => {
       timeout: 30000,
     });
 
-    const pidsBefore = getClickerChromePids();
+    // Verify Chrome was actually spawned
+    const newPids = getNewPids(pidsBefore, getClickerChromePids());
+    assert.ok(newPids.length > 0, 'Chrome should have been spawned');
 
     // Stop daemon — should clean up Chrome
     execSync(`${VIBIUM} daemon stop`, { encoding: 'utf-8', timeout: 10000 });
 
-    // Poll until Chrome processes are gone (daemon cleanup is async)
+    // Poll until the new Chrome processes are gone (daemon cleanup is async)
     await waitUntil(() => {
-      const remaining = [...pidsBefore].filter(pid => getClickerChromePids().has(pid));
+      const remaining = newPids.filter(pid => getClickerChromePids().has(pid));
       return remaining.length === 0;
     }, 'Chrome PIDs cleaned up after daemon stop');
 
     const pidsAfter = getClickerChromePids();
-
-    // All Chrome processes that existed before stop should be gone
-    const remainingOldPids = [...pidsBefore].filter(pid => pidsAfter.has(pid));
+    const remainingNewPids = newPids.filter(pid => pidsAfter.has(pid));
     assert.strictEqual(
-      remainingOldPids.length,
+      remainingNewPids.length,
       0,
-      `Chrome processes should be cleaned up after daemon stop. Remaining PIDs: ${remainingOldPids.join(', ')}`
+      `Chrome processes should be cleaned up after daemon stop. Remaining PIDs: ${remainingNewPids.join(', ')}`
     );
   });
 

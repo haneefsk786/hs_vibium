@@ -8,6 +8,15 @@ from .clock import Clock
 from .recording import Recording
 from .route import Route
 from .dialog import Dialog
+from ..errors import (
+    VibiumError,
+    BiDiError,
+    VibiumNotFoundError,
+    TimeoutError,
+    ConnectionError,
+    ElementNotFoundError,
+    BrowserCrashedError,
+)
 
 __all__ = [
     "browser",
@@ -23,4 +32,11 @@ __all__ = [
     "Route",
     "Dialog",
     "SyncDownload",
+    "VibiumError",
+    "BiDiError",
+    "VibiumNotFoundError",
+    "TimeoutError",
+    "ConnectionError",
+    "ElementNotFoundError",
+    "BrowserCrashedError",
 ]

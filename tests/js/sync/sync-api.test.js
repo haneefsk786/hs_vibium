@@ -23,13 +23,13 @@ before(async () => {
   // Start the HTTP server in a child process
   serverProcess = fork(path.join(__dirname, 'sync-test-server.js'), [], { silent: true });
 
-  // Read the base URL from the server's stdout
+  // Read the base URL from the server's stdout (first line only)
   baseURL = await new Promise((resolve, reject) => {
     let data = '';
     serverProcess.stdout.on('data', (chunk) => {
       data += chunk.toString();
-      const line = data.trim();
-      if (line.startsWith('http://')) resolve(line);
+      const firstLine = data.split('\n')[0].trim();
+      if (firstLine.startsWith('http://')) resolve(firstLine);
     });
     serverProcess.on('error', reject);
     setTimeout(() => reject(new Error('Server startup timeout')), 5000);

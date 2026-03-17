@@ -26,7 +26,7 @@ before(async () => {
     let data = '';
     serverProcess.stdout.on('data', (chunk) => {
       data += chunk.toString();
-      const line = data.trim();
+      const line = data.split('\n')[0].trim();
       if (line.startsWith('http://')) resolve(line);
     });
     serverProcess.on('error', reject);

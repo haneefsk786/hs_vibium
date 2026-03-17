@@ -6,17 +6,11 @@ import asyncio
 import json
 from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING
 
+from . import errors
+from .errors import BiDiError
+
 if TYPE_CHECKING:
     from .binary import VibiumProcess
-
-
-class BiDiError(Exception):
-    """Raised when a BiDi command fails."""
-
-    def __init__(self, error: str, message: str):
-        self.error = error
-        self.message = message
-        super().__init__(f"{error}: {message}")
 
 
 class BiDiClient:
@@ -91,7 +85,7 @@ class BiDiClient:
         finally:
             for future in self._pending.values():
                 if not future.done():
-                    future.set_exception(ConnectionError("Connection closed"))
+                    future.set_exception(errors.ConnectionError("Connection closed"))
 
     async def send(self, method: str, params: Optional[Dict[str, Any]] = None, timeout: float = 60) -> Any:
         """Send a command and wait for the response."""
@@ -114,13 +108,16 @@ class BiDiClient:
             try:
                 response = await asyncio.wait_for(future, timeout=timeout)
             except asyncio.TimeoutError:
-                raise TimeoutError(f"Command '{method}' timed out after {timeout}s")
+                raise errors.TimeoutError(f"Command '{method}' timed out after {timeout}s")
 
             if response.get("type") == "error":
-                raise BiDiError(
-                    response.get("error", "unknown"),
-                    response.get("message", "Unknown error"),
-                )
+                error_code = response.get("error", "unknown")
+                error_message = response.get("message", "Unknown error")
+                if "element not found" in error_message:
+                    raise errors.ElementNotFoundError(error_message)
+                if error_code == "timeout":
+                    raise errors.TimeoutError(error_message)
+                raise BiDiError(error_code, error_message)
 
             return response.get("result")
         finally:

@@ -20,6 +20,15 @@ from .network import Request, Response
 from .download import Download
 from .console import ConsoleMessage
 from .websocket_info import WebSocketInfo
+from ..errors import (
+    VibiumError,
+    BiDiError,
+    VibiumNotFoundError,
+    TimeoutError,
+    ConnectionError,
+    ElementNotFoundError,
+    BrowserCrashedError,
+)
 
 __all__ = [
     "browser",
@@ -39,4 +48,11 @@ __all__ = [
     "Download",
     "ConsoleMessage",
     "WebSocketInfo",
+    "VibiumError",
+    "BiDiError",
+    "VibiumNotFoundError",
+    "TimeoutError",
+    "ConnectionError",
+    "ElementNotFoundError",
+    "BrowserCrashedError",
 ]

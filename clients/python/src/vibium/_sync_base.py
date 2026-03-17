@@ -6,6 +6,8 @@ import asyncio
 import threading
 from typing import Any, Optional
 
+from . import errors
+
 
 class _EventLoopThread:
     """Manages a background thread running an asyncio event loop."""
@@ -54,7 +56,7 @@ class _EventLoopThread:
             if future.done():
                 raise  # coroutine raised — preserve the original exception
             future.cancel()
-            raise TimeoutError(
+            raise errors.TimeoutError(
                 f"Synchronous call did not complete within {timeout}s — "
                 "the background event loop may be stuck or the operation is taking too long"
             )

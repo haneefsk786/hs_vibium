@@ -19,6 +19,28 @@ from .sync_api.browser import browser, Browser
 from .sync_api.page import Page
 from .sync_api.element import Element
 from .sync_api.context import BrowserContext
+from .errors import (
+    VibiumError,
+    BiDiError,
+    VibiumNotFoundError,
+    TimeoutError,
+    ConnectionError,
+    ElementNotFoundError,
+    BrowserCrashedError,
+)
 
 __version__ = "26.3.11"
-__all__ = ["browser", "Browser", "Page", "Element", "BrowserContext"]
+__all__ = [
+    "browser",
+    "Browser",
+    "Page",
+    "Element",
+    "BrowserContext",
+    "VibiumError",
+    "BiDiError",
+    "VibiumNotFoundError",
+    "TimeoutError",
+    "ConnectionError",
+    "ElementNotFoundError",
+    "BrowserCrashedError",
+]

@@ -8,6 +8,7 @@ import fnmatch
 import re
 from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
 
+from .. import errors
 from .._types import A11yNode, BoundingBox, ElementInfo
 from .element import Element
 from .clock import Clock
@@ -299,7 +300,7 @@ class Page:
         except asyncio.TimeoutError:
             if handler in self._response_callbacks:
                 self._response_callbacks.remove(handler)
-            raise TimeoutError(f"Timeout waiting for response matching '{pattern}'")
+            raise errors.TimeoutError(f"Timeout waiting for response matching '{pattern}'")
 
     async def _setup_capture_response(self, pattern: str, timeout: Optional[int] = None) -> Any:
         """Internal: set up response listener and return a coroutine to await later."""
@@ -321,7 +322,7 @@ class Page:
             except asyncio.TimeoutError:
                 if handler in self._response_callbacks:
                     self._response_callbacks.remove(handler)
-                raise TimeoutError(f"Timeout waiting for response matching '{pattern}'")
+                raise errors.TimeoutError(f"Timeout waiting for response matching '{pattern}'")
 
         return _wait()
 
@@ -344,7 +345,7 @@ class Page:
         except asyncio.TimeoutError:
             if handler in self._request_callbacks:
                 self._request_callbacks.remove(handler)
-            raise TimeoutError(f"Timeout waiting for request matching '{pattern}'")
+            raise errors.TimeoutError(f"Timeout waiting for request matching '{pattern}'")
 
     async def _setup_capture_request(self, pattern: str, timeout: Optional[int] = None) -> Any:
         """Internal: set up request listener and return a coroutine to await later."""
@@ -366,7 +367,7 @@ class Page:
             except asyncio.TimeoutError:
                 if handler in self._request_callbacks:
                     self._request_callbacks.remove(handler)
-                raise TimeoutError(f"Timeout waiting for request matching '{pattern}'")
+                raise errors.TimeoutError(f"Timeout waiting for request matching '{pattern}'")
 
         return _wait()
 
@@ -387,7 +388,7 @@ class Page:
         except asyncio.TimeoutError:
             if handler in self._navigation_callbacks:
                 self._navigation_callbacks.remove(handler)
-            raise TimeoutError("Timeout waiting for navigation")
+            raise errors.TimeoutError("Timeout waiting for navigation")
 
     async def _setup_capture_navigation(self, timeout: Optional[int] = None) -> Any:
         """Internal: set up navigation listener and return a coroutine to await later."""
@@ -407,7 +408,7 @@ class Page:
             except asyncio.TimeoutError:
                 if handler in self._navigation_callbacks:
                     self._navigation_callbacks.remove(handler)
-                raise TimeoutError("Timeout waiting for navigation")
+                raise errors.TimeoutError("Timeout waiting for navigation")
 
         return _wait()
 
@@ -428,7 +429,7 @@ class Page:
         except asyncio.TimeoutError:
             if handler in self._download_callbacks:
                 self._download_callbacks.remove(handler)
-            raise TimeoutError("Timeout waiting for download")
+            raise errors.TimeoutError("Timeout waiting for download")
 
     async def _setup_capture_download(self, timeout: Optional[int] = None) -> Any:
         """Internal: set up download listener and return a coroutine to await later."""
@@ -448,7 +449,7 @@ class Page:
             except asyncio.TimeoutError:
                 if handler in self._download_callbacks:
                     self._download_callbacks.remove(handler)
-                raise TimeoutError("Timeout waiting for download")
+                raise errors.TimeoutError("Timeout waiting for download")
 
         return _wait()
 
@@ -469,7 +470,7 @@ class Page:
         except asyncio.TimeoutError:
             if handler in self._dialog_callbacks:
                 self._dialog_callbacks.remove(handler)
-            raise TimeoutError("Timeout waiting for dialog")
+            raise errors.TimeoutError("Timeout waiting for dialog")
 
     async def _setup_capture_dialog(self, timeout: Optional[int] = None) -> Any:
         """Internal: set up dialog listener and return a coroutine to await later."""
@@ -489,7 +490,7 @@ class Page:
             except asyncio.TimeoutError:
                 if handler in self._dialog_callbacks:
                     self._dialog_callbacks.remove(handler)
-                raise TimeoutError("Timeout waiting for dialog")
+                raise errors.TimeoutError("Timeout waiting for dialog")
 
         return _wait()
 
@@ -516,7 +517,7 @@ class Page:
         except asyncio.TimeoutError:
             if handler in callback_list:
                 callback_list.remove(handler)
-            raise TimeoutError(f"Timeout waiting for event '{name}'")
+            raise errors.TimeoutError(f"Timeout waiting for event '{name}'")
 
     async def _setup_capture_event(self, name: str, timeout: Optional[int] = None) -> Any:
         """Internal: set up event listener and return a coroutine to await later."""
@@ -542,7 +543,7 @@ class Page:
             except asyncio.TimeoutError:
                 if handler in callback_list:
                     callback_list.remove(handler)
-                raise TimeoutError(f"Timeout waiting for event '{name}'")
+                raise errors.TimeoutError(f"Timeout waiting for event '{name}'")
 
         return _wait()
 

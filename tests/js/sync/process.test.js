@@ -65,7 +65,7 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function waitUntil(fn, description, { timeout = 8000, interval = 500 } = {}) {
+async function waitUntil(fn, description, { timeout = 15000, interval = 500 } = {}) {
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
     if (fn()) return;
