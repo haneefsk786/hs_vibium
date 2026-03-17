@@ -52,127 +52,15 @@ writeFileSync('screenshot.png', screenshot)
 bro.stop()
 ```
 
-## API Reference
-
-### browser.start(options?)
-
-Start a new browser session. Returns a `Browser`.
-
-```javascript
-const bro = await browser.start({ headless: true })
-```
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `headless` | boolean | `false` | Run without visible window |
-
-### bro.page()
-
-Get the default page (tab).
-
-```javascript
-const vibe = await bro.page()
-```
-
-### vibe.go(url)
-
-Navigate to a URL.
-
-```javascript
-await vibe.go('https://example.com')
-```
-
-### vibe.find(selector, options?)
-
-Find an element by CSS selector.
-
-```javascript
-const button = await vibe.find('button.submit')
-```
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `timeout` | number | `30000` | Max wait time in ms |
-
-### vibe.screenshot()
-
-Capture a screenshot. Returns a `Buffer` (PNG).
-
-```javascript
-const png = await vibe.screenshot()
-```
-
-### bro.stop()
-
-Close the browser session.
-
-```javascript
-await bro.stop()
-```
-
-### element.click(options?)
-
-Click the element. Waits for element to be visible, stable, and enabled.
-
-```javascript
-await element.click()
-```
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `timeout` | number | `30000` | Max wait time in ms |
-
-### element.type(text, options?)
-
-Type text into the element. Waits for element to be visible, stable, enabled, and editable.
-
-```javascript
-await element.type('hello@example.com')
-```
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `timeout` | number | `30000` | Max wait time in ms |
-
-### element.text()
-
-Get the element's text content.
-
-```javascript
-const text = await element.text()
-```
-
-### element.getAttribute(name)
-
-Get an attribute value.
-
-```javascript
-const testId = await element.getAttribute('data-testid')
-```
-
-### element.boundingBox()
-
-Get the element's position and size. Returns `{x, y, width, height}`.
-
-```javascript
-const box = await element.boundingBox()
-```
-
 ## Environment Variables
 
 | Variable | Description |
 |----------|-------------|
 | `VIBIUM_SKIP_BROWSER_DOWNLOAD` | Set to `1` to skip Chrome download on install |
 
-## Claude Code / MCP
+## Requirements
 
-Add Vibium to Claude Code:
-
-```bash
-claude mcp add vibium -- npx vibium mcp
-```
-
-Vibium exposes 70+ browser automation tools (navigation, clicking, typing, screenshots, accessibility tree, and more). Your AI assistant discovers them automatically via MCP.
+- Node.js 18+
 
 ## Links
 

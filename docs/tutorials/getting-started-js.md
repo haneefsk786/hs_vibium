@@ -71,7 +71,18 @@ This creates a folder and a `package.json` file.
 npm install vibium
 ```
 
-This downloads Vibium and Chrome for Testing. Might take a minute.
+This downloads Vibium and Chrome for Testing to a platform-specific cache. Might take a minute.
+
+| Platform | Cache path |
+|----------|------------|
+| Linux | `~/.cache/vibium/` |
+| macOS | `~/Library/Caches/vibium/` |
+| Windows | `%LOCALAPPDATA%\vibium\` |
+
+**Skip browser download** (if you manage Chrome separately):
+```bash
+VIBIUM_SKIP_BROWSER_DOWNLOAD=1 npm install vibium
+```
 
 ---
 

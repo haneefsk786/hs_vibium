@@ -1,5 +1,7 @@
 # Vibium
 
+[![npm](https://img.shields.io/npm/v/vibium)](https://www.npmjs.com/package/vibium) [![PyPI](https://img.shields.io/pypi/v/vibium)](https://pypi.org/project/vibium/) [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
+
 **Browser automation for AI agents and humans.**
 
 Vibium gives AI agents a browser. Install the `vibium` skill and your agent can navigate pages, fill forms, click buttons, and take screenshots — all through simple CLI commands. Also available as an MCP server and as JS/TS and Python client libraries.
@@ -16,44 +18,6 @@ Vibium gives AI agents a browser. Install the `vibium` skill and your agent can 
 
 ---
 
-## Architecture
-
-```
-┌──────────────────────────────────────┐
-│             LLM / Agent              │
-│  (Claude Code, Codex, Gemini, etc.)  │
-└──────────────────────────────────────┘
-       ▲                  ▲
-       │ CLI (Bash)       │ MCP (stdio)
-       ▼                  ▼
-┌───────────────────────────────────┐
-│          Vibium binary            │
-│                                   │
-│  ┌──────────────┐ ┌────────────┐  │
-│  │ CLI Commands │ │ MCP Server │  │
-│  └─────┬────────┘ └──────┬─────┘  │        ┌──────────────────┐
-│        └───────▲─────────┘        │        │                  │
-│                │                  │        │                  │
-│         ┌──────▼───────┐          │  BiDi  │  Chrome Browser  │
-│         │  BiDi Proxy  │          │◄──────►│                  │
-│         └──────────────┘          │        │                  │
-└───────────────────────────────────┘        └──────────────────┘
-          ▲
-          │ WebSocket BiDi :9515
-          ▼
-┌──────────────────────────────────────┐
-│          Client Libraries            │
-│          (js/ts | python)            │
-│                                      │
-│  ┌─────────────────┐ ┌────────────┐  │
-│  │   Async API     │ │  Sync API  │  │
-│  │ await vibe.go() │ │  vibe.go() │  │
-│  └─────────────────┘ └────────────┘  │
-└──────────────────────────────────────┘
-```
-
----
-
 ## Agent Setup
 
 ```bash
@@ -62,6 +26,8 @@ npx skills add https://github.com/VibiumDev/vibium --skill vibe-check
 ```
 
 The first command installs Vibium and the `vibium` binary, and downloads Chrome. The second installs the skill to `{project}/.agents/skills/vibium`.
+
+> `skills` is the [open agent skills CLI](https://github.com/vercel-labs/skills) — a package manager for AI agent skills. No global install needed; `npx` runs it directly.
 
 ### CLI Quick Reference
 
@@ -91,7 +57,7 @@ vibium wait url "/dashboard"          # wait for URL change
 vibium wait text "Success"            # wait for text on page
 
 # Record sessions
-vibium record start                   # record with screenshots (default)
+vibium record start                   # record with screenshots
 vibium record stop                    # stop and save to record.zip
 
 # Forms & input
@@ -121,29 +87,9 @@ npm install vibium   # JavaScript/TypeScript
 pip install vibium   # Python
 ```
 
-This automatically:
-1. Installs the Vibium binary for your platform
-2. Downloads Chrome for Testing + chromedriver to platform cache:
-   - Linux: `~/.cache/vibium/`
-   - macOS: `~/Library/Caches/vibium/`
-   - Windows: `%LOCALAPPDATA%\vibium\`
-
-No manual browser setup required.
-
-**Skip browser download** (if you manage browsers separately):
-```bash
-VIBIUM_SKIP_BROWSER_DOWNLOAD=1 npm install vibium
-```
+This installs the Vibium binary and downloads Chrome automatically. No manual browser setup required.
 
 ### JS/TS Client
-
-```javascript
-// Async (import)
-import { browser } from 'vibium'
-
-// Sync (require-friendly)
-const { browser } = require('vibium/sync')
-```
 
 **Async API:**
 ```javascript
@@ -163,8 +109,8 @@ await bro.stop()
 
 **Sync API:**
 ```javascript
-const fs = require('fs')
 const { browser } = require('vibium/sync')
+const fs = require('fs')
 
 const bro = browser.start()
 const vibe = bro.page()
@@ -224,6 +170,44 @@ with open("screenshot.png", "wb") as f:
 link = vibe.find("a")
 link.click()
 bro.stop()
+```
+
+---
+
+## Architecture
+
+```
+┌──────────────────────────────────────┐
+│             LLM / Agent              │
+│  (Claude Code, Codex, Gemini, etc.)  │
+└──────────────────────────────────────┘
+       ▲                  ▲
+       │ CLI (Bash)       │ MCP (stdio)
+       ▼                  ▼
+┌───────────────────────────────────┐
+│          Vibium binary            │
+│                                   │
+│  ┌──────────────┐ ┌────────────┐  │
+│  │ CLI Commands │ │ MCP Server │  │
+│  └─────┬────────┘ └──────┬─────┘  │        ┌──────────────────┐
+│        └───────▲─────────┘        │        │                  │
+│                │                  │        │                  │
+│         ┌──────▼───────┐          │  BiDi  │  Chrome Browser  │
+│         │  BiDi Proxy  │          │◄──────►│                  │
+│         └──────────────┘          │        │                  │
+└───────────────────────────────────┘        └──────────────────┘
+          ▲
+          │ WebSocket BiDi :9515
+          ▼
+┌──────────────────────────────────────┐
+│          Client Libraries            │
+│          (js/ts | python)            │
+│                                      │
+│  ┌─────────────────┐ ┌────────────┐  │
+│  │   Async API     │ │  Sync API  │  │
+│  │ await vibe.go() │ │  vibe.go() │  │
+│  └─────────────────┘ └────────────┘  │
+└──────────────────────────────────────┘
 ```
 
 ---

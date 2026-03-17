@@ -1,4 +1,4 @@
-# Vibium Python Client
+# Vibium
 
 Browser automation for AI agents and humans.
 
@@ -65,6 +65,11 @@ vibium version   # Show version
 ## Requirements
 
 - Python 3.9+
+
+## Links
+
+- [GitHub / Documentation](https://github.com/VibiumDev/vibium)
+- [Website](https://vibium.com)
 
 ## License
 

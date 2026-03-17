@@ -62,15 +62,18 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install vibium
 ```
 
-This downloads Vibium and the vibium binary for your platform.
+This downloads Vibium and the vibium binary for your platform. Chrome downloads automatically on first run (or run `vibium install` to pre-download it).
 
-Optionally, pre-download Chrome:
+| Platform | Cache path |
+|----------|------------|
+| Linux | `~/.cache/vibium/` |
+| macOS | `~/Library/Caches/vibium/` |
+| Windows | `%LOCALAPPDATA%\vibium\` |
 
+Chrome downloads automatically on first `browser.start()`. To skip this (if you manage Chrome separately), set the env var before running your script:
 ```bash
-vibium install
+export VIBIUM_SKIP_BROWSER_DOWNLOAD=1
 ```
-
-Or just let it download automatically on first run.
 
 ---
 
