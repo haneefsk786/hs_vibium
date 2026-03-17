@@ -170,7 +170,9 @@
 | `context.cookies(urls?)` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `context.setCookies()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `context.clearCookies()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `context.storageState()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `context.storage()` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `context.setStorage()` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `context.clearStorage()` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `context.addInitScript()` | ✅ | ✅ | ✅ | ✅ | — | — |
 
 ## Emulation

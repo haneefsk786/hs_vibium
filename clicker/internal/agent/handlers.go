@@ -489,9 +489,9 @@ func mcpToolToMethod(name string) string {
 	case "browser_delete_cookies":
 		return "vibium:context.clearCookies"
 	case "browser_storage_state":
-		return "vibium:context.storageState"
+		return "vibium:context.storage"
 	case "browser_restore_storage":
-		return "vibium:context.setCookies"
+		return "vibium:context.setStorage"
 
 	// Dialog
 	case "browser_dialog_accept":

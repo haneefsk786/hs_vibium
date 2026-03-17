@@ -533,8 +533,14 @@ func (r *Router) OnClientMessage(client ClientTransport, msg string) {
 	case "vibium:context.clearCookies":
 		r.dispatch(session, cmd, r.handleContextClearCookies)
 		return
-	case "vibium:context.storageState":
-		r.dispatch(session, cmd, r.handleContextStorageState)
+	case "vibium:context.storage":
+		r.dispatch(session, cmd, r.handleContextStorage)
+		return
+	case "vibium:context.setStorage":
+		r.dispatch(session, cmd, r.handleContextSetStorage)
+		return
+	case "vibium:context.clearStorage":
+		r.dispatch(session, cmd, r.handleContextClearStorage)
 		return
 	case "vibium:context.addInitScript":
 		r.dispatch(session, cmd, r.handleContextAddInitScript)

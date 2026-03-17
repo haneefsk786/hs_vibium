@@ -1,7 +1,6 @@
 /**
- * JS Library Tests: Cookies & Storage
- * Tests context.cookies, context.setCookies, context.clearCookies,
- * context.storageState, and context.addInitScript.
+ * JS Library Tests: Cookies
+ * Tests context.cookies, context.setCookies, context.clearCookies, and context.addInitScript.
  *
  * Uses a local HTTP server — no external network dependencies.
  */
@@ -170,48 +169,6 @@ describe('Cookies: context.clearCookies()', () => {
       // Verify cleared
       cookies = await ctx.cookies();
       assert.strictEqual(cookies.length, 0, `Should have no cookies after clearing, got ${cookies.length}`);
-
-      await ctx.close();
-    } finally {
-      await bro.stop();
-    }
-  });
-});
-
-// --- context.storageState() ---
-
-describe('Storage: context.storageState()', () => {
-  test('storageState() returns cookies + localStorage', async () => {
-    const bro = await browser.start({ headless: true });
-    try {
-      const ctx = await bro.newContext();
-      const vibe = await ctx.newPage();
-      await vibe.go(baseURL);
-
-      // Set a cookie and localStorage item
-      await ctx.setCookies([
-        { name: 'state_cookie', value: 'state_val', domain: '127.0.0.1' },
-      ]);
-      await vibe.evaluate('localStorage.setItem("key1", "value1")');
-
-      const state = await ctx.storageState();
-
-      // Check cookies
-      assert.ok(Array.isArray(state.cookies), 'storageState should have cookies array');
-      const stateCookie = state.cookies.find(c => c.name === 'state_cookie');
-      assert.ok(stateCookie, 'Should find state_cookie in storageState');
-
-      // Check origins
-      assert.ok(Array.isArray(state.origins), 'storageState should have origins array');
-      assert.ok(state.origins.length > 0, 'Should have at least one origin');
-
-      const origin = state.origins[0];
-      assert.ok(origin.origin, 'Origin should have an origin field');
-      assert.ok(Array.isArray(origin.localStorage), 'Origin should have localStorage array');
-
-      const lsItem = origin.localStorage.find(item => item.name === 'key1');
-      assert.ok(lsItem, 'Should find key1 in localStorage');
-      assert.strictEqual(lsItem.value, 'value1');
 
       await ctx.close();
     } finally {

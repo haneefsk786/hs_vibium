@@ -192,6 +192,7 @@ test-js: build-go
 		tests/js/async/a11y-tree-tutorial.test.js \
 		tests/js/async/downloads-tutorial.test.js \
 		tests/js/async/cookies.test.js \
+		tests/js/async/storage.test.js \
 		tests/js/async/frames.test.js \
 		tests/js/async/object-model.test.js \
 		tests/js/async/navigation.test.js \

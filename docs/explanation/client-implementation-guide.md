@@ -185,7 +185,9 @@ All extension commands use the `vibium:` prefix. Standard WebDriver BiDi command
 | `vibium:context.cookies` | Get cookies |
 | `vibium:context.setCookies` | Set cookies |
 | `vibium:context.clearCookies` | Clear cookies |
-| `vibium:context.storageState` | Get storage state |
+| `vibium:context.storage` | Get storage state |
+| `vibium:context.setStorage` | Set storage state |
+| `vibium:context.clearStorage` | Clear all storage |
 | `vibium:context.addInitScript` | Add an init script |
 
 #### Frame (2)
@@ -426,7 +428,9 @@ These should be structured types (interfaces/structs), not raw dicts:
 | `cookies(urls?)` | `cookies(urls?)` | `vibium:context.cookies` |
 | `setCookies(cookies)` | `set_cookies(cookies)` | `vibium:context.setCookies` |
 | `clearCookies()` | `clear_cookies()` | `vibium:context.clearCookies` |
-| `storageState()` | `storage_state()` | `vibium:context.storageState` |
+| `storage()` | `storage()` | `vibium:context.storage` |
+| `setStorage(state)` | `set_storage(state)` | `vibium:context.setStorage` |
+| `clearStorage()` | `clear_storage()` | `vibium:context.clearStorage` |
 | `addInitScript(script)` | `add_init_script(script)` | `vibium:context.addInitScript` |
 
 ### Clock

@@ -348,7 +348,9 @@ vibe.find(placeholder='Search...')
 | `context.cookies(urls?)` | `context.cookies()` | BiDi: `storage.getCookies` | Context-level |
 | `context.setCookies(cookies)` | `context.addCookies()` | BiDi: `storage.setCookie` | |
 | `context.clearCookies()` | `context.clearCookies()` | BiDi: `storage.deleteCookies` | |
-| `context.storageState()` | `context.storageState()` | JS: read localStorage/sessionStorage + cookies | Serialize full state |
+| `context.storage()` | `context.storageState()` | JS: read localStorage/sessionStorage + cookies | Serialize full state |
+| `context.setStorage(state)` | — | Set cookies + localStorage + sessionStorage | Restore from state |
+| `context.clearStorage()` | — | Clear cookies + localStorage + sessionStorage | Full reset |
 | `context.addInitScript(script)` | `context.addInitScript()` | BiDi: `script.addPreloadScript` | Runs before page scripts |
 
 ### 13. Emulation (6 commands)

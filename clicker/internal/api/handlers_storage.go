@@ -179,8 +179,8 @@ func (r *Router) handleContextClearCookies(session *BrowserSession, cmd bidiComm
 	r.sendSuccess(session, cmd.ID, map[string]interface{}{})
 }
 
-// handleContextStorageState handles vibium:context.storageState — returns cookies + localStorage + sessionStorage.
-func (r *Router) handleContextStorageState(session *BrowserSession, cmd bidiCommand) {
+// handleContextStorage handles vibium:context.storage — returns cookies + localStorage + sessionStorage.
+func (r *Router) handleContextStorage(session *BrowserSession, cmd bidiCommand) {
 	userContext, _ := cmd.Params["userContext"].(string)
 	if userContext == "" {
 		r.sendError(session, cmd.ID, fmt.Errorf("userContext is required"))
@@ -262,6 +262,170 @@ func (r *Router) handleContextStorageState(session *BrowserSession, cmd bidiComm
 		"cookies": cookies,
 		"origins": origins,
 	})
+}
+
+// handleContextSetStorage handles vibium:context.setStorage — restores cookies + localStorage + sessionStorage.
+func (r *Router) handleContextSetStorage(session *BrowserSession, cmd bidiCommand) {
+	userContext, _ := cmd.Params["userContext"].(string)
+	if userContext == "" {
+		r.sendError(session, cmd.ID, fmt.Errorf("userContext is required"))
+		return
+	}
+
+	stateRaw, ok := cmd.Params["state"].(map[string]interface{})
+	if !ok {
+		r.sendError(session, cmd.ID, fmt.Errorf("state is required"))
+		return
+	}
+
+	// 1. Set cookies (reuse setCookies logic)
+	if cookiesRaw, ok := stateRaw["cookies"].([]interface{}); ok && len(cookiesRaw) > 0 {
+		partition := map[string]interface{}{
+			"type":        "storageKey",
+			"userContext": userContext,
+		}
+
+		for _, cRaw := range cookiesRaw {
+			c, ok := cRaw.(map[string]interface{})
+			if !ok {
+				continue
+			}
+
+			name, _ := c["name"].(string)
+			value, _ := c["value"].(string)
+			domain, _ := c["domain"].(string)
+
+			if domain == "" {
+				if urlStr, ok := c["url"].(string); ok && urlStr != "" {
+					if parsed, err := url.Parse(urlStr); err == nil {
+						domain = parsed.Hostname()
+					}
+				}
+			}
+
+			if name == "" || domain == "" {
+				continue
+			}
+
+			bidiCookie := map[string]interface{}{
+				"name":   name,
+				"value":  map[string]interface{}{"type": "string", "value": value},
+				"domain": domain,
+				"path":   "/",
+			}
+
+			if path, ok := c["path"].(string); ok && path != "" {
+				bidiCookie["path"] = path
+			}
+			if httpOnly, ok := c["httpOnly"].(bool); ok {
+				bidiCookie["httpOnly"] = httpOnly
+			}
+			if secure, ok := c["secure"].(bool); ok {
+				bidiCookie["secure"] = secure
+			}
+			if sameSite, ok := c["sameSite"].(string); ok && sameSite != "" {
+				bidiCookie["sameSite"] = sameSite
+			}
+			if expiry, ok := c["expiry"].(float64); ok {
+				bidiCookie["expiry"] = int(expiry)
+			}
+
+			params := map[string]interface{}{
+				"cookie":    bidiCookie,
+				"partition": partition,
+			}
+
+			resp, err := r.sendInternalCommand(session, "storage.setCookie", params)
+			if err != nil {
+				r.sendError(session, cmd.ID, err)
+				return
+			}
+			if bidiErr := checkBidiError(resp); bidiErr != nil {
+				r.sendError(session, cmd.ID, bidiErr)
+				return
+			}
+		}
+	}
+
+	// 2. Set localStorage/sessionStorage from origins
+	if originsRaw, ok := stateRaw["origins"].([]interface{}); ok && len(originsRaw) > 0 {
+		context, err := r.findContextForUserContext(session, userContext)
+		if err == nil {
+			for _, oRaw := range originsRaw {
+				o, ok := oRaw.(map[string]interface{})
+				if !ok {
+					continue
+				}
+
+				// Build JS to restore storage for this origin
+				lsItems, _ := o["localStorage"].([]interface{})
+				ssItems, _ := o["sessionStorage"].([]interface{})
+
+				if len(lsItems) == 0 && len(ssItems) == 0 {
+					continue
+				}
+
+				// Serialize items to JSON for safe embedding in JS
+				lsJSON, _ := json.Marshal(lsItems)
+				ssJSON, _ := json.Marshal(ssItems)
+
+				script := fmt.Sprintf(`() => {
+					var ls = %s;
+					for (var i = 0; i < ls.length; i++) {
+						localStorage.setItem(ls[i].name, ls[i].value);
+					}
+					var ss = %s;
+					for (var i = 0; i < ss.length; i++) {
+						sessionStorage.setItem(ss[i].name, ss[i].value);
+					}
+					return 'ok';
+				}`, string(lsJSON), string(ssJSON))
+
+				r.evalSimpleScript(session, context, script)
+			}
+		}
+	}
+
+	r.sendSuccess(session, cmd.ID, map[string]interface{}{})
+}
+
+// handleContextClearStorage handles vibium:context.clearStorage — clears cookies + localStorage + sessionStorage.
+func (r *Router) handleContextClearStorage(session *BrowserSession, cmd bidiCommand) {
+	userContext, _ := cmd.Params["userContext"].(string)
+	if userContext == "" {
+		r.sendError(session, cmd.ID, fmt.Errorf("userContext is required"))
+		return
+	}
+
+	// 1. Clear cookies
+	params := map[string]interface{}{
+		"partition": map[string]interface{}{
+			"type":        "storageKey",
+			"userContext": userContext,
+		},
+	}
+
+	resp, err := r.sendInternalCommand(session, "storage.deleteCookies", params)
+	if err != nil {
+		r.sendError(session, cmd.ID, err)
+		return
+	}
+	if bidiErr := checkBidiError(resp); bidiErr != nil {
+		r.sendError(session, cmd.ID, bidiErr)
+		return
+	}
+
+	// 2. Clear localStorage + sessionStorage (if a page is open)
+	context, err := r.findContextForUserContext(session, userContext)
+	if err == nil {
+		r.evalSimpleScript(session, context, `() => {
+			localStorage.clear();
+			sessionStorage.clear();
+			return 'ok';
+		}`)
+	}
+
+	r.sendSuccess(session, cmd.ID, map[string]interface{}{})
 }
 
 // handleContextAddInitScript handles vibium:context.addInitScript — adds a preload script scoped to the user context.

@@ -66,9 +66,22 @@ class BrowserContext:
             "userContext": self._user_context_id,
         })
 
-    async def storage_state(self) -> StorageState:
+    async def storage(self) -> StorageState:
         """Get the storage state (cookies + localStorage + sessionStorage)."""
-        return await self._client.send("vibium:context.storageState", {
+        return await self._client.send("vibium:context.storage", {
+            "userContext": self._user_context_id,
+        })
+
+    async def set_storage(self, state: StorageState) -> None:
+        """Set the storage state (cookies + localStorage + sessionStorage)."""
+        await self._client.send("vibium:context.setStorage", {
+            "userContext": self._user_context_id,
+            "state": state,
+        })
+
+    async def clear_storage(self) -> None:
+        """Clear all storage (cookies + localStorage + sessionStorage)."""
+        await self._client.send("vibium:context.clearStorage", {
             "userContext": self._user_context_id,
         })
 

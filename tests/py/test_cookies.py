@@ -1,4 +1,4 @@
-"""Cookie tests — cookies, setCookies, clearCookies, storageState, addInitScript (11 async tests)."""
+"""Cookie tests — cookies, setCookies, clearCookies, addInitScript."""
 
 import pytest
 
@@ -79,20 +79,6 @@ async def test_clear_cookies(fresh_async_browser, test_server):
         await ctx.clear_cookies()
         cookies_after = await ctx.cookies()
         assert len(cookies_after) == 0
-    finally:
-        await ctx.close()
-
-
-# --- Storage ---
-
-async def test_storage_state(fresh_async_browser, test_server):
-    ctx = await fresh_async_browser.new_context()
-    try:
-        vibe = await ctx.new_page()
-        await vibe.go(test_server + "/set-cookie")
-        state = await ctx.storage_state()
-        assert isinstance(state, dict)
-        assert "cookies" in state
     finally:
         await ctx.close()
 

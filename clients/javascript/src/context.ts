@@ -94,11 +94,26 @@ export class BrowserContext {
   }
 
   /** Get the storage state (cookies + localStorage + sessionStorage). */
-  async storageState(): Promise<StorageState> {
-    const result = await this.client.send<StorageState>('vibium:context.storageState', {
+  async storage(): Promise<StorageState> {
+    const result = await this.client.send<StorageState>('vibium:context.storage', {
       userContext: this.userContextId,
     });
     return result;
+  }
+
+  /** Set the storage state (cookies + localStorage + sessionStorage). */
+  async setStorage(state: StorageState): Promise<void> {
+    await this.client.send('vibium:context.setStorage', {
+      userContext: this.userContextId,
+      state,
+    });
+  }
+
+  /** Clear all storage (cookies + localStorage + sessionStorage). */
+  async clearStorage(): Promise<void> {
+    await this.client.send('vibium:context.clearStorage', {
+      userContext: this.userContextId,
+    });
   }
 
   /** Add an init script that runs before page scripts in this context. */

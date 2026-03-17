@@ -48,8 +48,14 @@ class BrowserContext:
     def clear_cookies(self) -> None:
         self._loop.run(self._async.clear_cookies())
 
-    def storage_state(self) -> StorageState:
-        return self._loop.run(self._async.storage_state())
+    def storage(self) -> StorageState:
+        return self._loop.run(self._async.storage())
+
+    def set_storage(self, state: StorageState) -> None:
+        self._loop.run(self._async.set_storage(state))
+
+    def clear_storage(self) -> None:
+        self._loop.run(self._async.clear_storage())
 
     def add_init_script(self, script: str) -> str:
         return self._loop.run(self._async.add_init_script(script))

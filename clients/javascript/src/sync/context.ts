@@ -36,8 +36,16 @@ export class BrowserContextSync {
     this.bridge.call('context.clearCookies', [this.contextId]);
   }
 
-  storageState(): StorageState {
-    return this.bridge.call<StorageState>('context.storageState', [this.contextId]);
+  storage(): StorageState {
+    return this.bridge.call<StorageState>('context.storage', [this.contextId]);
+  }
+
+  setStorage(state: StorageState): void {
+    this.bridge.call('context.setStorage', [this.contextId, state]);
+  }
+
+  clearStorage(): void {
+    this.bridge.call('context.clearStorage', [this.contextId]);
   }
 
   addInitScript(script: string): string {

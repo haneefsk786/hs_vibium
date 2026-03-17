@@ -948,9 +948,21 @@ const handlers: Record<string, Handler> = {
     return { success: true };
   },
 
-  'context.storageState': async (args) => {
+  'context.storage': async (args) => {
     const [contextId] = args as [number];
-    return await getContext(contextId).storageState();
+    return await getContext(contextId).storage();
+  },
+
+  'context.setStorage': async (args) => {
+    const [contextId, state] = args as [number, import('../context').StorageState];
+    await getContext(contextId).setStorage(state);
+    return { success: true };
+  },
+
+  'context.clearStorage': async (args) => {
+    const [contextId] = args as [number];
+    await getContext(contextId).clearStorage();
+    return { success: true };
   },
 
   'context.addInitScript': async (args) => {
