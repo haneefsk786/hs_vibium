@@ -27,12 +27,16 @@ else
   endif
 endif
 
-.PHONY: all build build-go build-js build-go-all package package-js package-python install-browser deps clean clean-go clean-js clean-npm-packages clean-python-packages clean-packages clean-cache clean-all serve test test-cli test-js test-mcp test-daemon test-python test-cleanup double-tap get-version set-version help
+.PHONY: all build build-go build-js build-go-all package package-js package-python install-browser deps clean clean-go clean-js clean-npm-packages clean-python-packages clean-packages clean-cache clean-all serve test test-cli test-js test-mcp test-daemon test-python test-java test-cleanup double-tap get-version set-version build-java package-java publish-java clean-java jshell help
 
 # Version from VERSION file
 # Note: GnuWin32 Make 3.81 runs $(shell) via CreateProcess, not SHELL,
 # so 'cat' must be on PATH (add Git's usr/bin — see docs/how-to-guides/local-dev-setup-x86-windows.md)
 VERSION := $(shell cat VERSION)
+# Allow V= as shorthand for VERSION=
+ifdef V
+  override VERSION := $(V)
+endif
 
 # Per-group test timeout in seconds (override: make test TEST_TIMEOUT=600)
 TEST_TIMEOUT ?= 300
@@ -44,8 +48,8 @@ TEST_FLAGS := --test-timeout=60000 --test-force-exit
 # Default target
 all: build
 
-# Build everything (Go + JS)
-build: build-go build-js
+# Build everything (Go + JS + Java)
+build: build-go build-js build-java
 
 # Build vibium binary
 build-go: deps
@@ -139,7 +143,7 @@ serve: build-go
 # Build everything and run all tests: make test
 test: build install-browser
 	@START_TIME=$$(date +%s); \
-	"$(MAKE)" test-cli test-cleanup test-js test-cleanup test-mcp test-cleanup test-python test-cleanup; \
+	"$(MAKE)" test-cli test-cleanup test-js test-cleanup test-mcp test-cleanup test-python test-cleanup test-java test-cleanup; \
 	EXIT=$$?; \
 	END_TIME=$$(date +%s); \
 	ELAPSED=$$((END_TIME - START_TIME)); \
@@ -233,6 +237,32 @@ test-python: build-go install-browser
 		VIBIUM_BIN_PATH=$(CURDIR)/clicker/bin/vibium$(EXE) \
 		python -m pytest ../../tests/py/ -v --tb=short -x
 
+# Build Java client JAR (dev — no native binaries, fast)
+build-java: build-go
+	@if [ ! -f clients/java/gradlew ]; then cd clients/java && gradle wrapper; fi
+	cd clients/java && ./gradlew build -x test
+
+# Run Java client tests
+test-java: build-go install-browser
+	@echo "--- Java Client Tests ---"
+	cd clients/java && VIBIUM_BIN_PATH=$(CURDIR)/clicker/bin/vibium$(EXE) ./gradlew test
+
+# Package Java JAR with native binaries
+package-java: build-go-all
+	cd clients/java && ./gradlew jar
+
+# Publish Java JAR to Maven Central
+publish-java: package-java
+	cd clients/java && ./gradlew publishAllPublicationsToSonatypeCentralRepository
+
+# Interactive JShell with the Java client
+jshell: build-java
+	VIBIUM_BIN_PATH=$(CURDIR)/clicker/bin/vibium$(EXE) jshell --class-path "$$(find clients/java/build/libs -name 'vibium-*.jar' ! -name '*-sources*' ! -name '*-javadoc*' | head -1):$$(find clients/java/build/dependencies -name '*.jar' | paste -sd ':' -)"
+
+# Clean Java build artifacts
+clean-java:
+	cd clients/java && ./gradlew clean
+
 # Kill zombie Chrome and chromedriver processes
 double-tap:
 	@echo "Killing zombie processes..."
@@ -290,7 +320,7 @@ get-version:
 	@cat VERSION
 
 # Update version across all packages
-# Usage: make set-version VERSION=x.x.x
+# Usage: make set-version VERSION=x.x.x  (or V=x.x.x)
 set-version:
 	@if [ -z "$(VERSION)" ]; then echo "Usage: make set-version VERSION=x.x.x"; exit 1; fi
 	@echo "$(VERSION)" > VERSION
@@ -335,20 +365,24 @@ help:
 	@echo "  make                       - Build everything (default)"
 	@echo "  make build-go              - Build vibium binary"
 	@echo "  make build-js              - Build JS client"
+	@echo "  make build-java            - Build Java client JAR"
+	@echo "  make jshell               - Interactive JShell with the Java client"
 	@echo "  make build-go-all          - Cross-compile vibium for all platforms"
 	@echo ""
 	@echo "Package:"
 	@echo "  make package               - Build all packages (npm + Python)"
 	@echo "  make package-js            - Build npm packages only"
 	@echo "  make package-python        - Build Python wheels only"
+	@echo "  make package-java          - Build Java JAR with native binaries"
 	@echo ""
 	@echo "Test:"
-	@echo "  make test                  - Build everything and run all tests (CLI + JS + MCP + Python)"
+	@echo "  make test                  - Build everything and run all tests (CLI + JS + MCP + Python + Java)"
 	@echo "  make test-cli              - Run CLI tests only"
 	@echo "  make test-js               - Run JS library tests only"
 	@echo "  make test-mcp              - Run MCP server tests only"
 	@echo "  make test-daemon           - Run daemon lifecycle tests"
 	@echo "  make test-python           - Run Python client tests"
+	@echo "  make test-java             - Run Java client tests"
 	@echo ""
 	@echo "Other:"
 	@echo "  make install-browser       - Install Chrome for Testing"
@@ -356,7 +390,7 @@ help:
 	@echo "  make serve                 - Start proxy server on :9515"
 	@echo "  make double-tap            - Kill zombie Chrome/chromedriver processes"
 	@echo "  make get-version           - Show current version"
-	@echo "  make set-version VERSION=x.x.x - Set version across all packages"
+	@echo "  make set-version VERSION=x.x.x - Set version across all packages (V= also works)"
 	@echo ""
 	@echo "Clean:"
 	@echo "  make clean                 - Clean binaries and JS dist"
@@ -365,6 +399,7 @@ help:
 	@echo "  make clean-npm-packages    - Clean built npm packages"
 	@echo "  make clean-python-packages - Clean Python packages"
 	@echo "  make clean-packages        - Clean all packages (npm + Python)"
+	@echo "  make clean-java            - Clean Java build artifacts"
 	@echo "  make clean-cache           - Clean cached Chrome for Testing"
 	@echo "  make clean-all             - Clean everything"
 	@echo ""

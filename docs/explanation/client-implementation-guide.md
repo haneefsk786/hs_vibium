@@ -146,21 +146,21 @@ These are lightweight data classes constructed from events. See the JS or Python
 
 ### Method Names
 
-| Convention | JS | Python | Java/Kotlin | C# | Ruby | Rust | Go |
-|---|---|---|---|---|---|---|---|
-| Multi-word methods | `camelCase` | `snake_case` | `camelCase` | `PascalCase` | `snake_case` | `snake_case` | `PascalCase` |
-| Boolean queries | `isVisible()` | `is_visible()` | `isVisible()` | `IsVisible()` | `visible?` | `is_visible()` | `IsVisible()` |
-| Setters | `setViewport()` | `set_viewport()` | `setViewport()` | `SetViewport()` | `set_viewport` / `viewport=` | `set_viewport()` | `SetViewport()` |
-| Event handlers | `onDialog(fn)` | `on_dialog(fn)` | `onDialog(fn)` | `OnDialog(fn)` | `on_dialog(&block)` | `on_dialog(fn)` | `OnDialog(fn)` |
+| Convention | JS | Python | Java/Kotlin | C# | Ruby | Rust | Go | Nim |
+|---|---|---|---|---|---|---|---|---|
+| Multi-word methods | `camelCase` | `snake_case` | `camelCase` | `PascalCase` | `snake_case` | `snake_case` | `PascalCase` | `camelCase` |
+| Boolean queries | `isVisible()` | `is_visible()` | `isVisible()` | `IsVisible()` | `visible?` | `is_visible()` | `IsVisible()` | `isVisible()` |
+| Setters | `setViewport()` | `set_viewport()` | `setViewport()` | `SetViewport()` | `set_viewport` / `viewport=` | `set_viewport()` | `SetViewport()` | `setViewport()` |
+| Event handlers | `onDialog(fn)` | `on_dialog(fn)` | `onDialog(fn)` | `OnDialog(fn)` | `on_dialog(&block)` | `on_dialog(fn)` | `OnDialog(fn)` | `onDialog(fn)` |
 
 ### Wire → Client Mapping
 
 The wire protocol uses `camelCase`. Each language converts to its idiomatic style:
 
 ```
-vibium:page.setViewport  →  JS: setViewport()   Python: set_viewport()   Ruby: set_viewport
-vibium:element.isVisible →  JS: isVisible()     Python: is_visible()     Ruby: visible?
-vibium:page.a11yTree     →  JS: a11yTree()      Python: a11y_tree()      Ruby: a11y_tree
+vibium:page.setViewport  →  JS: setViewport()   Python: set_viewport()   Ruby: set_viewport   Nim: setViewport()
+vibium:element.isVisible →  JS: isVisible()     Python: is_visible()     Ruby: visible?        Nim: isVisible()
+vibium:page.a11yTree     →  JS: a11yTree()      Python: a11y_tree()      Ruby: a11y_tree       Nim: a11yTree()
 ```
 
 ### Parameter Names
@@ -172,6 +172,7 @@ Wire: {"colorScheme": "dark", "reducedMotion": "reduce"}
 JS:   colorScheme: "dark", reducedMotion: "reduce"     (same as wire)
 Py:   color_scheme="dark", reduced_motion="reduce"     (snake_case)
 Ruby: color_scheme: "dark", reduced_motion: "reduce"   (snake_case)
+Nim:  colorScheme = "dark", reducedMotion = "reduce"   (same as wire)
 ```
 
 **Important:** Always convert at the client boundary. Never leak wire-protocol casing to users (see [#91](https://github.com/VibiumDev/vibium/issues/91)).
@@ -216,6 +217,7 @@ Some languages have built-in `TimeoutError` or `ConnectionError`. Use prefixed n
 | Ruby | `TimeoutError` | `ConnectionError` (namespaced under `Vibium::`) |
 | Rust | `Error::Timeout` | `Error::Connection` (enum variants) |
 | Go | `ErrTimeout` | `ErrConnection` (sentinel errors) |
+| Nim | `TimeoutError` | `ConnectionError` (namespaced under `vibium` module) |
 
 ---
 
@@ -240,6 +242,7 @@ For scripting and REPL use, a sync wrapper dramatically improves the getting-sta
 | Rust | `async fn` (tokio/async-std) | `block_on()` wrappers |
 | Go | Goroutines (inherently concurrent) | Primary API is sync with channels for events |
 | Swift | `async/await` (structured concurrency) | Sync wrappers with `DispatchSemaphore` |
+| Nim | `async/await` (`asyncdispatch`) | `waitFor()` wrappers |
 
 ### Event Handling
 
@@ -257,7 +260,7 @@ Some method names conflict with language reserved words. Here's how to handle th
 
 | Wire Method | Conflict | Resolution |
 |---|---|---|
-| `vibium:network.continue` | `continue` is reserved in most languages | Python: `continue_()`, Java: `doContinue()`, Ruby: `continue_request`, C#: `Continue()` (C# allows PascalCase), Rust: `r#continue()` or `continue_()`, Go: `Continue()` |
+| `vibium:network.continue` | `continue` is reserved in most languages | Python: `continue_()`, Java: `doContinue()`, Ruby: `continue_request`, C#: `Continue()` (C# allows PascalCase), Rust: `r#continue()` or `continue_()`, Go: `Continue()`, Nim: `continueRequest()` |
 
 ### General Rules
 
@@ -265,6 +268,7 @@ Some method names conflict with language reserved words. Here's how to handle th
 2. **Prefix with `do`** (Java, Kotlin): `doContinue()`
 3. **Raw identifier** (Rust): `r#continue()`
 4. **PascalCase avoids most conflicts** (C#, Go)
+5. **Rename** (Nim): `continueRequest()` — avoids backtick stropping for a cleaner API
 
 ---
 

@@ -96,8 +96,24 @@ xcode-select --install
 ### Languages
 
 ```bash
-brew install nvm node python go
+brew install nvm node python go openjdk@21 gradle
 ```
+
+Add to `~/.zshrc`:
+
+```bash
+export JAVA_HOME=$(brew --prefix openjdk@21)/libexec/openjdk.jdk/Contents/Home
+export PATH="$JAVA_HOME/bin:$PATH"
+```
+
+Verify:
+
+```bash
+source ~/.zshrc
+java -version    # should show openjdk 21
+gradle --version # should show Gradle 8.x
+```
+
 
 ### Tools
 

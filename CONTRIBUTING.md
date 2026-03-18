@@ -16,6 +16,7 @@ If you prefer to develop directly on your host machine, follow the steps below.
 - Go 1.21+
 - Node.js 18+
 - Python 3.9+ (for Python client development)
+- Java 21+ and Gradle 8+ (for Java client development)
 - GitHub CLI (optional, for managing issues/PRs from terminal):
   - macOS: `brew install gh`
   - Linux: `sudo apt install gh` or `sudo dnf install gh`
@@ -44,6 +45,7 @@ This installs npm dependencies, builds the vibium binary and the JS client, down
 make                       # Build everything (default)
 make build-go              # Build vibium binary
 make build-js              # Build JS client
+make build-java            # Build Java client JAR
 make build-go-all          # Cross-compile vibium for all platforms
 ```
 
@@ -53,6 +55,7 @@ make build-go-all          # Cross-compile vibium for all platforms
 make package               # Build all packages (npm + Python)
 make package-js            # Build npm packages only
 make package-python        # Build Python wheels only
+make package-java          # Build Java JAR with native binaries
 ```
 
 ### Test
@@ -63,6 +66,7 @@ make test-cli              # Run CLI tests only
 make test-js               # Run JS library tests only
 make test-mcp              # Run MCP server tests only
 make test-python           # Run Python client tests
+make test-java             # Run Java client tests
 make test-daemon           # Run daemon lifecycle tests
 ```
 
@@ -83,6 +87,7 @@ make set-version VERSION=x.x.x  # Set version across all packages
 make clean                 # Clean binaries and JS dist
 make clean-go              # Clean vibium binaries
 make clean-js              # Clean JS client dist
+make clean-java            # Clean Java build artifacts
 make clean-npm-packages    # Clean built npm packages
 make clean-python-packages # Clean Python packages
 make clean-packages        # Clean all packages (npm + Python)
@@ -227,6 +232,95 @@ async def main():
     await bro.stop()
 
 asyncio.run(main())
+```
+
+---
+
+## Using the Java Client
+
+The Java client provides a synchronous API for browser automation.
+
+### Setup
+
+```bash
+# From the repo root — builds Go binary + Java JAR
+make build-java
+
+# Point the client to the locally-built binary
+export VIBIUM_BIN_PATH=./clicker/bin/vibium
+```
+
+Or install from Maven Central (binary is bundled in the JAR):
+
+```xml
+<dependency>
+    <groupId>com.vibium</groupId>
+    <artifactId>vibium</artifactId>
+    <version>26.3.11</version>
+</dependency>
+```
+
+### Interactive REPL (JShell)
+
+After building, you can test the Java client interactively with JShell:
+
+```bash
+make jshell
+```
+
+```java
+import com.vibium.*;
+import com.vibium.types.*;
+
+var bro = Vibium.start();
+var vibe = bro.page();
+vibe.go("https://example.com")
+
+var el = vibe.find("h1")
+el.text()
+
+// Execute JavaScript
+vibe.evaluate("document.title")
+
+// Screenshot
+var shot = vibe.screenshot()
+java.nio.file.Files.write(java.nio.file.Path.of("screenshot.png"), shot)
+
+bro.stop()
+```
+
+### File Example
+
+Save this as `Example.java`:
+
+```java
+import com.vibium.Vibium;
+import com.vibium.Browser;
+import com.vibium.Page;
+import com.vibium.Element;
+
+public class Example {
+    public static void main(String[] args) throws Exception {
+        Browser bro = Vibium.start();
+        Page vibe = bro.page();
+        vibe.go("https://example.com");
+
+        Element el = vibe.find("h1");
+        System.out.println(el.text());
+
+        byte[] shot = vibe.screenshot();
+        java.nio.file.Files.write(java.nio.file.Path.of("screenshot.png"), shot);
+
+        bro.stop();
+    }
+}
+```
+
+Compile and run (from the repo root):
+
+```bash
+javac -cp "clients/java/build/libs/*:clients/java/build/dependencies/*" Example.java
+java -cp ".:clients/java/build/libs/*:clients/java/build/dependencies/*" Example
 ```
 
 ---

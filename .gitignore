@@ -59,6 +59,11 @@ screenshots/
 # NPM package tarballs
 *.tgz
 
+# Java / Gradle
+clients/java/build/
+clients/java/.gradle/
+clients/java/src/main/resources/natives/
+
 # Python
 __pycache__/
 *.py[cod]
