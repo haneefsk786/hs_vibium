@@ -14,8 +14,6 @@ Vibium's architecture follows the classic robotics control loop:
 | **Think** | Cortex | Memory + navigation planning |
 | **Act** | Vibium | Browser automation via BiDi |
 
-**V1 ships Act (Vibium).** V2 adds Sense and Think.
-
 ---
 
 ## Cortex — Think Layer
@@ -72,30 +70,6 @@ Vibium's architecture follows the classic robotics control loop:
 **Status:** Community project exists. Not officially supported yet, but we hope to include an official .NET client in the future.
 
 **When to build:** When demand warrants official support.
-
----
-
-## Java Client
-
-**What:** Maven/Gradle dependency with idiomatic Java API.
-
-**Why deferred:** Java ecosystem moves slowly. Enterprise users will want stability we can't guarantee in V1.
-
-**API:**
-```java
-import com.vibium.Browser;
-
-var bro = Browser.start();
-var vibe = bro.page();
-vibe.go("https://example.com");
-var el = vibe.find("a");
-el.click();
-bro.stop();
-```
-
-**When to build:** When enterprise users request it, likely after V1 is proven stable.
-
-**Estimated effort:** 1-2 weeks
 
 ---
 
@@ -168,22 +142,6 @@ const el = await vibe.find("the blue submit button");
 
 ---
 
-## Network Tracing
-
-**What:** Capture and inspect network requests/responses.
-
-**Why deferred:** BiDi network module is complex. Most agent use cases don't need request inspection.
-
-**Features:**
-- Enable/disable network capture
-- Log all requests/responses
-- HAR export
-- Request interception (mock responses)
-
-**When to build:** When users need to debug API calls or mock backends.
-
-**Estimated effort:** 1-2 weeks
-
 ---
 
 ## Firefox, Edge, Safari, and Brave Support
@@ -220,10 +178,8 @@ const el = await vibe.find("the blue submit button");
 
 Based on likely user demand:
 
-1. **Java client** — Enterprise demand
-2. **More browsers**
-3. **Network tracing** — DevTools parity
-4. **Video recording** — Debugging value, moderate effort
+1. **More browsers**
+2. **Video recording** — Debugging value, moderate effort
 5. **Retina** — If recording human sessions matters
 6. **Cortex** — If agents need persistent memory
 7. **AI locators** — High value but high uncertainty

@@ -1,12 +1,12 @@
 # Vibium
 
-[![npm](https://img.shields.io/npm/v/vibium)](https://www.npmjs.com/package/vibium) [![PyPI](https://img.shields.io/pypi/v/vibium)](https://pypi.org/project/vibium/) [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
+[![npm](https://img.shields.io/npm/v/vibium)](https://www.npmjs.com/package/vibium) [![PyPI](https://img.shields.io/pypi/v/vibium)](https://pypi.org/project/vibium/) [![Maven Central](https://img.shields.io/maven-central/v/com.vibium/vibium)](https://central.sonatype.com/artifact/com.vibium/vibium) [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
 **Browser automation for AI agents and humans.**
 
-Vibium gives AI agents a browser. Install the `vibium` skill and your agent can navigate pages, fill forms, click buttons, and take screenshots — all through simple CLI commands. Also available as an MCP server and as JS/TS and Python client libraries.
+Vibium gives AI agents a browser. Install the `vibium` skill and your agent can navigate pages, fill forms, click buttons, and take screenshots — all through simple CLI commands. Also available as an MCP server and as JS/TS, Python, and Java client libraries.
 
-**New here?** [Getting Started Tutorial](docs/tutorials/getting-started-js.md) — zero to hello world in 5 minutes.
+**New here?** Get started in [JavaScript](docs/tutorials/getting-started-js.md), [Python](docs/tutorials/getting-started-python.md), or [Java](docs/tutorials/getting-started-java.md) — zero to hello world in 5 minutes.
 
 ## Why Vibium?
 
@@ -14,7 +14,7 @@ Vibium gives AI agents a browser. Install the `vibium` skill and your agent can 
 - **Zero config.** One install, browser downloads automatically, visible by default.
 - **Standards-based.** Built on [WebDriver BiDi](docs/explanation/webdriver-bidi.md), not proprietary protocols controlled by large corporations.
 - **Lightweight.** Single ~10MB binary. No runtime dependencies.
-- **Flexible.** Use as a CLI skill, MCP server, or JS/Python library.
+- **Flexible.** Use as a CLI skill, MCP server, or JS/Python/Java library.
 
 ---
 
@@ -85,6 +85,20 @@ See [MCP setup guide](docs/tutorials/getting-started-mcp.md) for options and tro
 ```bash
 npm install vibium   # JavaScript/TypeScript
 pip install vibium   # Python
+```
+
+**Java** (Gradle):
+```groovy
+implementation 'com.vibium:vibium:26.3.17'
+```
+
+**Java** (Maven):
+```xml
+<dependency>
+    <groupId>com.vibium</groupId>
+    <artifactId>vibium</artifactId>
+    <version>26.3.17</version>
+</dependency>
 ```
 
 This installs the Vibium binary and downloads Chrome automatically. No manual browser setup required.
@@ -172,6 +186,21 @@ link.click()
 bro.stop()
 ```
 
+### Java Client
+
+```java
+var bro = Vibium.start();
+var vibe = bro.page();
+vibe.go("https://example.com");
+
+var png = vibe.screenshot();
+Files.write(Path.of("screenshot.png"), png);
+
+var link = vibe.find("a");
+link.click();
+bro.stop();
+```
+
 ---
 
 ## Architecture
@@ -201,7 +230,7 @@ bro.stop()
           ▼
 ┌──────────────────────────────────────┐
 │          Client Libraries            │
-│          (js/ts | python)            │
+│       (js/ts | python | java)        │
 │                                      │
 │  ┌─────────────────┐ ┌────────────┐  │
 │  │   Async API     │ │  Sync API  │  │
@@ -234,7 +263,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
 V1 focuses on the core loop: browser control via CLI, MCP, and client libraries.
 
 See [ROADMAP.md](ROADMAP.md) for planned features:
-- Java client
 - Cortex (memory/navigation layer)
 - Retina (recording extension)
 - Video recording
